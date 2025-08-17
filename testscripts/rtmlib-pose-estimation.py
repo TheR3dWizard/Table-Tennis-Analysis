@@ -6,7 +6,7 @@ from rtmlib import Wholebody, draw_skeleton
 
 device = 'cpu'
 backend = 'onnxruntime'
-video_path = './demo.mp4'  # Path to your video file
+video_path = 'assets/minisample1.mp4'  # Path to your video file
 
 openpose_skeleton = False
 

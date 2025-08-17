@@ -58,4 +58,4 @@ def process_video(video_path, background_path, PSI=4):
     cv2.destroyAllWindows()
 
 # Example usage:
-process_video('game_1.mp4', 'output.jpg', PSI=4)
+process_video('assets/demo.mp4', 'assets/bg4.png', PSI=4)
