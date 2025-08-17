@@ -2,15 +2,18 @@ import pika
 from kafka import KafkaProducer, KafkaConsumer
 
 class RabbitMQService:
-    def __init__(self, host=None, port=None, queue=None):
+    def __init__(self, username, host=None, port=None, queue=None):
         self.host = host or 'localhost'
         self.port = port or 5672
         self.queue = queue or 'default'
         self.connection = None
         self.channel = None
+        self.username = username
+        self.password = "nopass"  # Password can be set if needed
 
     def connect(self):
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host, port=self.port))
+        credentials = pika.PlainCredentials(self.username, self.password)
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host, port=self.port, credentials=credentials))
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue=self.queue)
 
@@ -18,17 +21,25 @@ class RabbitMQService:
         if self.connection:
             self.connection.close()
 
-    def publish(self, message):
+    def publish(self, message, queue=None):
         if not self.channel:
             raise Exception("Channel not initialized. Call connect() first.")
-        self.channel.basic_publish(exchange='', routing_key=self.queue, body=message)
+        self.channel.basic_publish(exchange='', routing_key=queue or self.queue, body=message)
 
-    def consume(self, callback):
+    def consume(self, callback, queue=None):
         if not self.channel:
             raise Exception("Channel not initialized. Call connect() first.")
-        for method_frame, properties, body in self.channel.consume(queue=self.queue):
+        for method_frame, properties, body in self.channel.consume(queue=queue or self.queue):
             callback(body)
             self.channel.basic_ack(method_frame.delivery_tag)
+    
+    def getlastmessage(self, queue=None):
+        if not self.channel:
+            raise Exception("Channel not initialized. Call connect() first.")
+        method_frame, properties, body = self.channel.basic_get(queue=queue or self.queue)
+        if method_frame:
+            return body
+        return None
 
 class ServiceManager:
     def __init__(self, service_type, config):
