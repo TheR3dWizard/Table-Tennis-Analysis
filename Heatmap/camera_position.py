@@ -3,7 +3,9 @@ import numpy as np
 
 class CameraAnalysis:
     def __init__(self):
-        self.camera_ratio = None
+        self.camera_ratio_x = None
+        self.camera_ratio_y = None
+        self.camera_ratio_z = None
 
         #table dimensions in cm
         self.table_length = 274
@@ -76,10 +78,11 @@ class CameraAnalysis:
         """
         l,w = self.detect_table_edges(image_path)     
         #map pixel dimensions to real-world dimensions
-        
+        self.camera_ratio_x = self.table_length / l
+        self.camera_ratio_y = self.table_width / w
 
 if __name__ == "__main__":
     camera_analysis = CameraAnalysis()
-    edges = camera_analysis.detect_table_edges("test.png")
-    # You can save or further process the edges as needed
-    # cv2.imwrite("edges_output.jpg", edges)
+    camera_analysis.find_camera_ratio("test.png")
+    print(f"Camera Ratio (length): {camera_analysis.camera_ratio_x}")
+    print(f"Camera Ratio (width): {camera_analysis.camera_ratio_y}")
