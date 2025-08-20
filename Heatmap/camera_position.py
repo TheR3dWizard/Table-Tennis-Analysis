@@ -37,22 +37,46 @@ class CameraAnalysis:
         edges = cv2.Canny(blurred, threshold1=50, threshold2=150)
 
         # Display the edges on the image
-        cv2.imshow("Edges", edges)
-        cv2.waitKey(0)
+        # cv2.imshow("Edges", edges)
+        # cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
         size = 7
         kernel = np.ones((size, size), np.uint8)   # adjust kernel size as needed
         closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
         # Display the closed on the image
-        cv2.imshow("Closed", closed)
-        cv2.waitKey(0)
+        # cv2.imshow("Closed", closed)
+        # cv2.waitKey(0)
+
+        # Apply Hough Line Transform to detect straight edges
+        lines = cv2.HoughLinesP(closed, 1, np.pi / 180, threshold=100, minLineLength=100, maxLineGap=13)
+        closed_color = cv2.cvtColor(closed, cv2.COLOR_GRAY2BGR)  # Convert to 3-channel for colored lines
+        if lines is not None:
+            lines_img = np.zeros_like(closed_color)
+            for line in lines:
+                x1, y1, x2, y2 = line[0]
+                cv2.line(closed_color, (x1, y1), (x2, y2), (0, 255, 0), 2)  #overlaying for viewing
+                cv2.line(lines_img, (x1, y1), (x2, y2), (0, 255, 0), 2)  #actual output of lines
+            cv2.imshow("Hough Lines", closed_color)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        else:
+            print("No straight edges detected.")
 
         # Find contours
-        contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        hough_lines_image = cv2.cvtColor(lines_img, cv2.COLOR_BGR2GRAY)
+        contours, _ = cv2.findContours(hough_lines_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.imshow("Hough Lines Only", hough_lines_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
         # Take the largest contour (table border)
+        hough_lines_image = cv2.cvtColor(hough_lines_image, cv2.COLOR_GRAY2BGR)  # Convert to 3-channel for drawing
         c = max(contours, key=cv2.contourArea)
+        cv2.drawContours(hough_lines_image, [c], 0, (0, 255, 0), 2)  # Draw the largest contour
+        cv2.imshow("Largest Contour", hough_lines_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
         # Get bounding box
         x, y, l, w = cv2.boundingRect(c)
@@ -83,6 +107,6 @@ class CameraAnalysis:
 
 if __name__ == "__main__":
     camera_analysis = CameraAnalysis()
-    camera_analysis.find_camera_ratio("test.png")
+    camera_analysis.find_camera_ratio("akash_003.jpg")
     print(f"Camera Ratio (length): {camera_analysis.camera_ratio_x}")
     print(f"Camera Ratio (width): {camera_analysis.camera_ratio_y}")
