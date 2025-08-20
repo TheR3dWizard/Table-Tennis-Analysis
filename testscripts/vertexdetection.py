@@ -1,13 +1,14 @@
 # import the necessary packages
 import numpy as np
 import cv2
+from constants import Constants
 # import opencv_wrapper as cvw
 
 # import  poly_point_isect as bot
 
 # construct the argument parse and parse the arguments
 # load the image
-image = cv2.imread("assets/demo/frame_0133.jpg")
+image = cv2.imread(Constants.IMAGE1_PATH)
 
 # define the list of boundaries
 boundaries = [([180, 180, 100], [255, 255, 255])]
