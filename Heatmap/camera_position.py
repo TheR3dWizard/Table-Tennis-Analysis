@@ -1,5 +1,17 @@
 import cv2
+from matplotlib import contour
 import numpy as np
+
+def show_image(image, title="Image"):
+    """
+    Displays an image in a window.
+    Args:
+        image (numpy.ndarray): The image to display.
+        title (str): The title of the window.
+    """
+    cv2.imshow(title, image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 class CameraAnalysis:
     def __init__(self):
@@ -57,40 +69,36 @@ class CameraAnalysis:
                 x1, y1, x2, y2 = line[0]
                 cv2.line(closed_color, (x1, y1), (x2, y2), (0, 255, 0), 2)  #overlaying for viewing
                 cv2.line(lines_img, (x1, y1), (x2, y2), (0, 255, 0), 2)  #actual output of lines
-            cv2.imshow("Hough Lines", closed_color)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            show_image(closed_color, "Hough Lines")
         else:
             print("No straight edges detected.")
 
         # Find contours
         hough_lines_image = cv2.cvtColor(lines_img, cv2.COLOR_BGR2GRAY)
         contours, _ = cv2.findContours(hough_lines_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.imshow("Hough Lines Only", hough_lines_image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        show_image(hough_lines_image, "Hough Lines Only")
 
         # Take the largest contour (table border)
         hough_lines_image = cv2.cvtColor(hough_lines_image, cv2.COLOR_GRAY2BGR)  # Convert to 3-channel for drawing
         c = max(contours, key=cv2.contourArea)
+        epsilon = 0.02 * cv2.arcLength(c, True)  # tweak factor
+        c = cv2.approxPolyDP(c, epsilon, True)
         cv2.drawContours(hough_lines_image, [c], 0, (0, 255, 0), 2)  # Draw the largest contour
-        cv2.imshow("Largest Contour", hough_lines_image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        show_image(hough_lines_image, "Largest Contour")
 
         # Get bounding box
         x, y, l, w = cv2.boundingRect(c)
 
-        print(f"Table length (pixels): {l}")
-        print(f"Table width (pixels): {w}")
+        print(f"Number of vertices: {len(c)}")
+        # print(f"Table length (pixels): {l}")
+        # print(f"Table width (pixels): {w}")
 
         # (Optional) Draw rectangle for visualization
         cv2.rectangle(edges, (x, y), (x + l, y + w), (255, 255, 0), 2)
-        cv2.imshow("Detected Table", edges)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        show_image(edges, "Detected Table")
 
         return l,w
+
     
     def find_camera_ratio(self, image_path):
         """
@@ -105,8 +113,26 @@ class CameraAnalysis:
         self.camera_ratio_x = self.table_length / l
         self.camera_ratio_y = self.table_width / w
 
+    def find_absolute_position(self,x,y,image_path):
+        """
+        Calculates the absolute position of a point in the real world based on camera ratios.
+        Args:
+            x (float): x-coordinate in pixels.
+            y (float): y-coordinate in pixels.
+            image_path (str): Path to the input image.
+        Returns:
+            absolute_position (tuple): (x, y) in cm.
+        """
+        if self.camera_ratio_x is None or self.camera_ratio_y is None:
+            self.find_camera_ratio(image_path)
+
+        absolute_x = x * self.camera_ratio_x
+        absolute_y = y * self.camera_ratio_y
+
+        return absolute_x, absolute_y
+
 if __name__ == "__main__":
     camera_analysis = CameraAnalysis()
-    camera_analysis.find_camera_ratio("akash_003.jpg")
+    camera_analysis.find_camera_ratio("akash_001.jpg")
     print(f"Camera Ratio (length): {camera_analysis.camera_ratio_x}")
     print(f"Camera Ratio (width): {camera_analysis.camera_ratio_y}")
