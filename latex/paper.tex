@@ -1,0 +1,129 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{authblk}
+
+\title{Table Tennis Analysis}
+\author{Pramodini}
+\author{Akash}
+\author{Sanjitha}
+\author{Sreeraghavan}
+\author{Dwarakesh}
+
+\affil{Department of Computer Science and Engineering, PSG College of Technology}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Among the current mainstream approaches to reasoning, two main paradigms are tightly coupled specialized systems and generalized LLM-based systems. While tightly coupled systems perform very well in their domain, they do not expand well to other domains, and they are difficult and costly to adapt to new domains, often requiring significant re-engineering.. However, although LLMs demonstrate remarkable capabilities in diverse tasks, their reasoning is based on pattern completion rather than grounded, interpretable understanding—making them vulnerable to hallucinations or brittle reasoning.
+
+We propose a new type of reasoning system that is decentralized in execution, scalable, and easy to modify, providing both interpretability and competitive results. By using a Publish-Subscribe model, we both reduce the amount of computation done while also implementing reasoning capabilities by having model outputs chain into messages sent to other models, mimicking AI Agent behavior in a more transparent manner.
+
+The Mixture-of-Experts architecture is the currently used alternative. While Mixture-of-Experts architectures improve efficiency by activating only a subset of experts per input, they rely on a centralized routing mechanism and offer limited transparency into how different components contribute to the final output. 
+
+Future reasoning systems must move beyond monolithic models toward collaborative ensembles of specialized components that produce diverse inferences. These can be integrated to support richer and more context-aware insights.
+
+This project aims to find out whether combining specialized ML models in a modular, collaborative architecture can lead to more effective and reliable intelligence than relying on an LLM alone. 
+
+\section{Abstract}
+
+Current reasoning models heavily rely on LLMs and LLM agents taking various roles. Although this has its advantages, it requires a large number of tokens and computation. There are also other non-LLM based intelligence capabilities such as various ML models that are specialized. Using multiple specialized models in tandem is a better way to model reasoning.
+
+This architecture facilitates flexible integration of diverse analysis components and minimizes redundant computation. A shared context layer aggregates module outputs for centralized LLM based querying and downstream applications such as visualization, summarization, and performance reporting.
+
+We demonstrate the applicability of the system in the domain of sports video analysis, using table tennis match footage as a case study. The proposed design generalizes well to other domains that require fine-grained and interpretable video understanding.
+
+\section{Problem Statement}
+
+This project will build a scalable Table Tennis Video Analysis module—using deep‑learning models (e.g., CNNs and temporal transformers) and efficient 
+
+spatio‑temporal feature extractors to automatically spot serve faults (net hits, illegal tosses), tally rally exchanges, pinpoint bounce locations, and produce player movement insights. 
+
+It uses the following core components - object detection, event segmentation, pose estimation, and sequence analysis. These components work together in a modular and agentic architecture, where each component functions as a semi-autonomous "agent" focused on a specialized task. Outputs from individual agents can be integrated to form higher-level insights such as:
+
+\begin{itemize}
+    \item \textbf{Player Behavioral Profiles}: Tracking trends such as preferred serve styles, stroke success rates, and movement patterns.
+
+    \item \textbf{On-the-Fly Coaching and Feedback}: Provide point-by-point suggestions based on detected inefficiencies (e.g., slow recovery time, poor footwork on the backhand side).
+
+    \item \textbf{Match Strategy Insights}: Recommending tactical shifts against specific opponents based on historical patterns and real-time adjustments.
+\end{itemize}
+The agentic architecture also allows for fast extensibility without requiring re-engineering of any core systems
+
+
+\section{Literature Survey}
+
+\subsection{Introduction}
+Table tennis performance analysis has evolved considerably in recent years with the adoption of computational models, sensor fusion, machine learning, and advanced statistical methods. The blackboard architecture---a modular, collaborative framework where independent modules contribute insights to a shared ``blackboard''---is ideal for integrating different analytic approaches, making it suited for comprehensive table tennis skill and match analysis \cite{tamaki2017, sanusi2021}.
+
+\subsection{Player Heatmap}
+
+\textbf{Current Approaches:}
+\begin{itemize}
+    \item Heatmap techniques visualize player movement and density across different court zones, assisting coaches and analysts in identifying player positioning tendencies and strategic weaknesses \cite{boonim2023, heatmap2021}.
+    \item A clustering-based approach can quantify the percentage of time a player spends in each court zone, offering data-driven insights for training and tactical preparation \cite{boonim2023}.
+    \item In tennis, which is comparable to table tennis for movement analysis, centroid clustering methods have successfully mapped player positions and provided meaningful performance insights translatable to table tennis \cite{boonim2023}.
+\end{itemize}
+\textbf{Applications:}
+\begin{itemize}
+    \item Tactical evaluation, e.g., defensive vs. offensive playstyles.
+    \item Differentiating player types (right- vs left-handed) and comparing performance under varying conditions \cite{heatmap2021}.
+\end{itemize}
+
+\subsection{Stroke Analysis}
+
+\textbf{Sensor-Based and Statistical Analysis:}
+\begin{itemize}
+    \item Multi-sensor integration (e.g., smartphone accelerometer, Kinect) enables biomechanical data capture for stroke type classification in table tennis \cite{sanusi2021}.
+    \item Machine learning models such as LSTMs and SVMs can distinguish stroke types and detect technical mistakes with high accuracy when provided with properly annotated multimodal datasets \cite{sanusi2021}.
+    \item Combining different sensor modalities (motion, skeletal data) provides more reliable stroke recognition than using a single source, with accuracy rates exceeding traditional techniques \cite{sanusi2021}.
+\end{itemize}
+
+\subsection{Trajectory Analysis}
+
+\textbf{Shot Effectiveness and Sequential Pattern Analysis:}
+\begin{itemize}
+    \item Performance models based on shot sequence (e.g., 1st, 3rd shot, etc.) estimate effectiveness, scoring rate, and error rate for each phase of a rally \cite{tamaki2017}.
+    \item Statistical frameworks reveal which shots are most likely to influence point outcomes, aided by sequence-based analysis \cite{tamaki2017}.
+    \item Comparative studies of elite vs. regional players highlight differences in technique efficiency, shot selection, and rally phase responses \cite{effectiveness2023, tamaki2017}.
+\end{itemize}
+\textbf{Trajectory Visualization:}
+\begin{itemize}
+    \item Notational analysis and deep learning methods map ball paths and predict likely shot outcomes, aiding in strategy formation \cite{deeplearning2022}.
+    \item Player-centric shot mapping---which interprets trajectories relative to a player’s perspective---enables advanced visualization and can be integrated as a trajectory ``expert'' in a blackboard system \cite{playercentric2023}.
+\end{itemize}
+
+\subsection{Foul Analysis}
+
+\textbf{Rule Violation Detection:}
+\begin{itemize}
+    \item Automated foul detection (e.g., illegal serves, double bounces) is emerging, using high-speed video and sensor-based frameworks.
+    \item Shot-number-based models show fault-prone phases where loss/error rates peak \cite{tamaki2017}.
+\end{itemize}
+\textbf{Multimodal Data for Foul Recognition:}
+\begin{itemize}
+    \item Motion and vision sensor integration has been used to flag anomalous racket-ball interactions, enabling detection of illegal play.
+\end{itemize}
+
+\subsection{Integration with Blackboard Architecture}
+Each module functions as an ``expert'' or knowledge source:
+\begin{itemize}
+    \item \textbf{Player Heatmap:} Supplies spatial distribution, zone occupancy, and movement patterns.
+    \item \textbf{Stroke Analysis:} Provides technical classification, error detection, and skill evaluation.
+    \item \textbf{Trajectory Analysis:} Offers outcome prediction, shot pattern analysis, and success probability estimation.
+    \item \textbf{Foul Analysis:} Flags irregularities and legal violations, supporting corrective feedback.
+\end{itemize}
+
+The blackboard’s integrative model allows these modules to collaboratively refine analysis, fostering multidimensional insights unattainable by single-module systems \cite{tamaki2017, sanusi2021}.
+
+\subsection{Conclusion}
+The literature supports the feasibility of a modular, blackboard-style analytic system for table tennis, encompassing movement analytics, stroke mechanics, rally trajectory modeling, and foul detection. Advances in multimodal sensing, machine learning, and visualization enable robust, real-time analysis of table tennis skills and matches \cite{tamaki2017, sanusi2021, boonim2023, heatmap2021}.
+
+
+
+\bibliographystyle{plain} % or 'unsrt', 'abbrv', etc.
+\bibliography{references}
+
+\end{document}
