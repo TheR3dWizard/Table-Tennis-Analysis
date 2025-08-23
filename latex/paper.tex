@@ -1,16 +1,17 @@
 \documentclass{article}
 \usepackage{graphicx} % Required for inserting images
 \usepackage{authblk}
+\usepackage[margin=1.3in]{geometry} % 1 inch on all sides
 
 \title{Table Tennis Analysis}
-\author{Pramodini}
-\author{Akash}
-\author{Sanjitha}
-\author{Sreeraghavan}
+\author{Pramodini P}
+\author{Akash S}
+\author{Sanjitha R}
+\author{Sreeraghavan R}
 \author{Dwarakesh}
 
 \affil{Department of Computer Science and Engineering, PSG College of Technology}
-
+\date{}
 
 \begin{document}
 
@@ -39,7 +40,7 @@ We demonstrate the applicability of the system in the domain of sports video ana
 
 This project will build a scalable Table Tennis Video Analysis module—using deep‑learning models (e.g., CNNs and temporal transformers) and efficient 
 
-spatio‑temporal feature extractors to automatically spot serve faults (net hits, illegal tosses), tally rally exchanges, pinpoint bounce locations, and produce player movement insights. 
+spatio‑temporal feature extractors to automatically spot serve faults (net hits, illegal tosses), tally rally exchanges, pinpoint bounce locations, and produce player movement insights.
 
 It uses the following core components - object detection, event segmentation, pose estimation, and sequence analysis. These components work together in a modular and agentic architecture, where each component functions as a semi-autonomous "agent" focused on a specialized task. Outputs from individual agents can be integrated to form higher-level insights such as:
 
@@ -55,71 +56,92 @@ The agentic architecture also allows for fast extensibility without requiring re
 
 \section{Literature Survey}
 
-\subsection{Introduction}
-Table tennis performance analysis has evolved considerably in recent years with the adoption of computational models, sensor fusion, machine learning, and advanced statistical methods. The blackboard architecture---a modular, collaborative framework where independent modules contribute insights to a shared ``blackboard''---is ideal for integrating different analytic approaches, making it suited for comprehensive table tennis skill and match analysis \cite{tamaki2017, sanusi2021}.
+\subsection{Trajectory Analysis}
 
-\subsection{Player Heatmap}
+The research in trajectory analysis brings together a mix of classic computer vision methods and cutting-edge deep learning models. Current work explores combining videos with data from sensors like accelerometers  to create richer, more reliable information. Some ongoing challenges include dealing with missed detections when objects are hidden, reducing the effects of blurry motion, and keeping tracking smooth over time. New directions in Trajectory Analysis involve self-learning systems that don't rely on labels and neural networks inspired by physics to better predict how objects move \cite{pongball}.
 
-\textbf{Current Approaches:}
-\begin{itemize}
-    \item Heatmap techniques visualize player movement and density across different court zones, assisting coaches and analysts in identifying player positioning tendencies and strategic weaknesses \cite{boonim2023, heatmap2021}.
-    \item A clustering-based approach can quantify the percentage of time a player spends in each court zone, offering data-driven insights for training and tactical preparation \cite{boonim2023}.
-    \item In tennis, which is comparable to table tennis for movement analysis, centroid clustering methods have successfully mapped player positions and provided meaningful performance insights translatable to table tennis \cite{boonim2023}.
-\end{itemize}
-\textbf{Applications:}
-\begin{itemize}
-    \item Tactical evaluation, e.g., defensive vs. offensive playstyles.
-    \item Differentiating player types (right- vs left-handed) and comparing performance under varying conditions \cite{heatmap2021}.
-\end{itemize}
+\subsubsection{Workflow}
+
+Trajectory analysis in sports follows a systematic multi-stage workflow beginning with data acquisition through high-speed cameras operating at 60-120 fps in synchronized multi-camera setups \cite{electronics14010027}. The process proceeds through intrinsic and extrinsic camera calibration using chessboard patterns and fixed reference points to establish accurate 3D coordinate systems for spatial reconstruction.
+
+Object detection and tracking represent the core computational phase, employing models like YOLOv4, YOLOv11, and TrackNetv2 for ball detection \cite{electronics14010027}, while ByteTrack with Kalman filtering maintains temporal consistency across frames. Subsequently, 3D trajectory reconstruction utilizes triangulation for multi-camera systems or LSTM-based pipelines for monocular video \cite{pongball}, culminating in event spotting and analysis applications.
+
+\subsubsection{Models Used}
+
+Primary detection models include YOLOv4 and YOLOv11 for efficient small object detection, while TrackNetv2 generates heatmaps for ball localization \cite{electronics14010027}. Advanced reconstruction employs LSTM-based architectures featuring specialized networks: LSTM$\varepsilon$ for End-of-Trajectory prediction, LSTM\textsubscript{height} for vertical position estimation, and LSTM\textsubscript{refine} for trajectory smoothing.
 
 \subsection{Stroke Analysis}
 
-\textbf{Sensor-Based and Statistical Analysis:}
-\begin{itemize}
-    \item Multi-sensor integration (e.g., smartphone accelerometer, Kinect) enables biomechanical data capture for stroke type classification in table tennis \cite{sanusi2021}.
-    \item Machine learning models such as LSTMs and SVMs can distinguish stroke types and detect technical mistakes with high accuracy when provided with properly annotated multimodal datasets \cite{sanusi2021}.
-    \item Combining different sensor modalities (motion, skeletal data) provides more reliable stroke recognition than using a single source, with accuracy rates exceeding traditional techniques \cite{sanusi2021}.
-\end{itemize}
+The ball is tracked in 2D---typically with YOLOv4 \cite{strokeandball}---then strokes are segmented using simple trajectory cues like local extrema and bounces. Finally, standardized trajectories feed classifiers, where Temporal Convolutional Networks excel \cite{strokeandball}, while 3D LSTM pipelines and player heatmaps add richer context beyond stroke labels.
 
-\subsection{Trajectory Analysis}
+\subsubsection{Workflow}
 
-\textbf{Shot Effectiveness and Sequential Pattern Analysis:}
-\begin{itemize}
-    \item Performance models based on shot sequence (e.g., 1st, 3rd shot, etc.) estimate effectiveness, scoring rate, and error rate for each phase of a rally \cite{tamaki2017}.
-    \item Statistical frameworks reveal which shots are most likely to influence point outcomes, aided by sequence-based analysis \cite{tamaki2017}.
-    \item Comparative studies of elite vs. regional players highlight differences in technique efficiency, shot selection, and rally phase responses \cite{effectiveness2023, tamaki2017}.
-\end{itemize}
-\textbf{Trajectory Visualization:}
-\begin{itemize}
-    \item Notational analysis and deep learning methods map ball paths and predict likely shot outcomes, aiding in strategy formation \cite{deeplearning2022}.
-    \item Player-centric shot mapping---which interprets trajectories relative to a player’s perspective---enables advanced visualization and can be integrated as a trajectory ``expert'' in a blackboard system \cite{playercentric2023}.
-\end{itemize}
+The workflow begins with high-quality video capture from an umpire's side view using high frame rate (around 120 fps) and 1080p resolution. Videos are processed to extract 2D ball coordinates per frame, segment continuous trajectories into strokes via mathematical rules on local extrema, and classify each stroke's type using standardized, padded, mirrored trajectory sequences \cite{strokanadball}.
+
+Ball tracking relies primarily on a YOLOv4 detector, selected for superior F1 and fast 60 fps inference; it was pre-trained on 68,467 badminton shuttlecock images and fine-tuned on 968 table tennis ball images, leveraging the Darknet53 backbone \cite{strokaandball}. TrackNetv2, which produces heatmaps from multi-frame inputs to exploit temporal cues and handle occlusion, was also evaluated but was less preferred for this pipeline. Stroke detection uses x- and y-trajectory extrema to find temporal boundaries and ball pitches, labeling valid strokes, services, and misses.
+
+\subsubsection{Models Used}
+
+For recognition, deep models that preserve temporal structure performed strongest, with a Temporal Convolutional Network achieving about 87.155\% accuracy \cite{strokeandball} on pre-padded inputs and offering low variance, bias, and inference time. BiLSTM and LSTM architectures were also benchmarked.
+
+For the classic machine learning side, each trajectory is flattened into a single feature vector. In that setup, an SVM with an RBF kernel (C=10) did best with post-padding, while KNN (k=9) was a solid pick with pre-padding. Random Forest and XGBoost were also tried \cite{strokeandball}. 3D trajectory estimates were added using an LSTM-based pipeline with three parts: predicting the end of a trajectory, estimating height, and then refining the result.
 
 \subsection{Foul Analysis}
 
-\textbf{Rule Violation Detection:}
-\begin{itemize}
-    \item Automated foul detection (e.g., illegal serves, double bounces) is emerging, using high-speed video and sensor-based frameworks.
-    \item Shot-number-based models show fault-prone phases where loss/error rates peak \cite{tamaki2017}.
-\end{itemize}
-\textbf{Multimodal Data for Foul Recognition:}
-\begin{itemize}
-    \item Motion and vision sensor integration has been used to flag anomalous racket-ball interactions, enabling detection of illegal play.
-\end{itemize}
+This work demonstrates a trajectory-centric pipeline for automated foul analysis in table tennis serves \cite{art} that couples strong detection and tracking with attention-based temporal modeling and transparent rule checks. By relying solely on 3D ball kinematics, it achieves accuracy with reduced computational cost, lowering barriers to deployment while improving referee assistance with objective, interpretable outputs grounded in physical motion cues.
 
-\subsection{Integration with Blackboard Architecture}
-Each module functions as an ``expert'' or knowledge source:
-\begin{itemize}
-    \item \textbf{Player Heatmap:} Supplies spatial distribution, zone occupancy, and movement patterns.
-    \item \textbf{Stroke Analysis:} Provides technical classification, error detection, and skill evaluation.
-    \item \textbf{Trajectory Analysis:} Offers outcome prediction, shot pattern analysis, and success probability estimation.
-    \item \textbf{Foul Analysis:} Flags irregularities and legal violations, supporting corrective feedback.
-\end{itemize}
+\subsubsection{Workflow}
 
-The blackboard’s integrative model allows these modules to collaboratively refine analysis, fostering multidimensional insights unattainable by single-module systems \cite{tamaki2017, sanusi2021}.
+The system begins with synchronized, multi-view capture in a controlled indoor setup \cite{art} to ensure consistent lighting and reliable tracking. YOLO11 detects the fast-moving ball in each frame \cite{art}.
 
-\subsection{Conclusion}
-The literature supports the feasibility of a modular, blackboard-style analytic system for table tennis, encompassing movement analytics, stroke mechanics, rally trajectory modeling, and foul detection. Advances in multimodal sensing, machine learning, and visualization enable robust, real-time analysis of table tennis skills and matches \cite{tamaki2017, sanusi2021, boonim2023, heatmap2021}.
+Triangulation fuses detections into a precise 3D trajectory with temporal indexing, which becomes the single modality driving downstream analysis. Using only trajectory and key points, the video is segmented into serve sequences and evaluated by rule-based checks on toss height, verticality, and spatial boundaries to classify frames as No Foul or Foul \cite{electronics14010027}.
+
+\subsubsection{Models Used}
+
+YOLO11 serves as the high-precision detector tailored for tiny, fast objects, reaching 87.52\% precision and 83.37\% recall\cite{electronics14010027} . The model's attention mechanism captures temporal structure in ballistic and post-impact motion, enabling accurate event localization without RGB or optical flow\cite{electronics14010027}. This design underpins a trajectory-only pipeline that reduces compute versus pose or multi-stream systems \cite{electronics14010027}.
+
+\subsection{Player Heatmap}
+
+On the player side, people were detected with Detectron2, tables found using Hough and color cues, hip positions projected into a top-down view , and movement patterns studied with heatmaps and Kolmogorov--Smirnov tests.\cite{haas2023heatmap}
+
+\subsubsection{Workflow}
+
+The heatmap pipeline begins with match videos of top-100 professional male players \cite{haas2023heatmap}. Active rally segments are isolated by removing replays and breaks, detecting the table via Hough transform line geometry, and filtering frames accordingly. People are detected with Detectron2; heuristics and tracking retain only the two players.
+
+Player image-plane hip positions are projected onto the table's 3D plane to obtain a consistent top-view coordinate system centered at the table's midpoint, with continuous table tracking to handle camera motion . Aggregation and weighted normalization yield expression-specific heatmaps across attributes.\cite{haas2023heatmap}
+
+\subsubsection{Models Used}
+
+Table detection uses the classical Hough transform to extract straight lines \cite{haas2023heatmap}. Detectron2 performs state-of-the-art people detection; simple heuristics plus tracking isolate the two athletes. Hip keypoints are mapped from 2D images to the detected table plane, assuming hip height near table level, creating a stable top-view player position stream.
+
+Each player's positions form an occurrence grid normalized into a probability heatmap. Analytically, heatmaps are treated as 2D probability functions and compared via a multidimensional Kolmogorov--Smirnov variant \cite{haas2023heatmap}.
+
+\subsection{LLM Reasoning Architectures}
+The blackboard model of problem solving  has historically inspired architectures that separate memory, control, and expertise\cite{hanllm}. In modern contexts, this abstraction aligns closely with large language model (LLM)-driven multi-agent systems, which integrate blackboard structures with mixture-of-experts (MoE) mechanisms\cite{hanllm}
+
+\subsubsection{Workflow}
+A typical workflow begins with a control unit—itself often an LLM—that decides which specialized agents should act based on the current problem state. These agents contribute their reasoning outputs to a shared blackboard memory, ensuring all subsequent agents operate with the same holistic context. Iterations proceed until convergence, either through consensus or predefined termination conditions.\cite{hanllm}
+
+\subsubsection{Models Used}
+Classical work by Jacobs et al. \cite{amoe} on adaptive mixtures of experts introduced the principle of dividing tasks among specialized models and dynamically weighting their outputs. This idea later scaled into architectures like the sparsely-gated MoE layer \cite{omoe}, which improved efficiency in extremely large neural networks. Recent surveys \cite{smoe} highlight how MoE structures support LLM scalability, while Han \& Zhang [14] demonstrated how coupling them with blackboard coordination improves multi-agent reasoning efficiency.
+
+Thus, modern blackboard-based LLM multi-agent systems (bMAS) \cite{hanllm} embody a synthesis: the symbolic transparency of early blackboard systems [10], the adaptability of mixtures of experts \cite{amoe}\cite{moe}, and the scalability insights captured in surveys of MoE research \cite{moe}\cite{smoe}.
+
+\subsection{Blackboard Architecture}
+
+The blackboard-based LLM Multi-Agent System (bMAS) integrates the classical blackboard architecture \cite{nii1986blackboard} into LLM-driven multi-agent systems. By coordinating agents through a shared information space and adaptive scheduling, it avoids rigid workflows and inefficiencies. Its initial implementation, LbMAS, exhibits strong scalability and efficiency \cite{hanllm}.
+
+\subsubsection{Workflow}
+The blackboard-based LLM multi-agent system (bMAS) follows an iterative cycle of agent collaboration orchestrated by a control unit \cite{nii1986blackboard}. Each problem-solving session begins with agent generation, where expert roles relevant to the query are instantiated. The control unit then selects appropriate agents and supplies them with the blackboard content. Agents interpret this shared memory, contribute their outputs back to the blackboard, and the process continues until a stopping condition---consensus, a decider’s output, or maximum rounds---is achieved \cite{hanllm}.  
+
+\subsubsection{Models Used}
+The model is structured around three core components: control unit, blackboard, and LLM-based agents. The control unit, often an LLM itself, decides which agents are relevant at a given stage \cite{hanllm}, thus ensuring efficiency and reducing token consumption. The blackboard functions as shared memory, compartmentalized into public and private spaces, where agents record, debate, and refine their outputs \cite{nii1986blackboard}.  
+
+The agents themselves perform specialized roles like problem decomposition, evaluation of inconsistencies, or solution proposal. Through repeated iterations, the system evolves towards a consensus or majority-approved solution \cite{hanllm}.
+
+\subsection{Action Spotting}
+
+Recent works in sports video analysis highlight how deep learning can be tailored to different game contexts. Giancola et al. (2024) addressed the challenge of action spotting in football videos by building models capable of automatically identifying temporal segments corresponding to key events, showing how large-scale video understanding can reduce reliance on manual annotations \cite{giancola}. Similarly, Voeikov et al. (2020) proposed TTNet for table tennis, a real-time framework that jointly captures temporal and spatial cues to recognize strokes and track the ball with high precision \cite{ttnet}. Together, these approaches emphasize that event localization and fine-grained spatiotemporal modeling are critical for table tennis analysis, where both rapid ball motion and subtle player actions must be detected reliably.
 
 
 
