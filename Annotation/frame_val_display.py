@@ -7,13 +7,14 @@ cap = cv2.VideoCapture(video_path)
 
 # Example: List of values for each frame
 # (replace this with your actual list)
-values = np.load("outputs_game_1_0.npy",allow_pickle=True).tolist()
-values1 = np.load("outputs_game_1_1.npy",allow_pickle=True).tolist()
-values.extend(values1)
+values = np.load("..\Outputs\Segment Analysis\output_game_1.npy",allow_pickle=True).tolist()
+ground_truth = np.load("..\Outputs\Segment Analysis\ground_truth_game_1.npy",allow_pickle=True).tolist()
 # Font settings
 font = cv2.FONT_HERSHEY_SIMPLEX
 font_scale = 1
-color = (0, 255, 0)  # Green
+color = (255, 0, 0)  # Blue
+color_good = (0, 255, 0)  # Green
+color_bad = (255, 0, 0)  # Red
 thickness = 2
 position = (10, 30)  # Top-left corner
 
@@ -25,7 +26,12 @@ while cap.isOpened():
         break
 
     # Overlay the value on the frame
-    cv2.putText(frame, str(values[frame_idx]), position, font, font_scale, color, thickness)
+    if ground_truth[frame_idx] == values[frame_idx][0]:
+        cv2.putText(frame, "Correct", (10, 70), font, font_scale, color_good, thickness)
+    else:
+        cv2.putText(frame, "Incorrect", (10, 70), font, font_scale, color_bad, thickness)
+
+    cv2.putText(frame, str(values[frame_idx][0]), position, font, font_scale, color, thickness)
 
     # Display the frame
     cv2.imshow('Video with Values', frame)
