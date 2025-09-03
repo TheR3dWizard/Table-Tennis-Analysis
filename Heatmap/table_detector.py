@@ -565,7 +565,7 @@ def main():
     Main function to run table tennis table detection
     """
     
-    image_path = "assets/bb/table1.png"
+    image_path = "game_in_progress.png"
     
     # Check if image exists
     if not os.path.exists(image_path):
