@@ -38,9 +38,22 @@ class CameraAnalysis:
         return edges
 
 
+    def hough_line_detection(self, edges,step=False):
+        # Apply Hough Line Transform to detect straight edges
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=100, minLineLength=100, maxLineGap=13)
+        if step:
+            if lines is not None:
+                lines_img = np.zeros_like(edges)
+                # Convert to 3-channel image for colored lines
+                lines_img_color = cv2.cvtColor(lines_img, cv2.COLOR_GRAY2BGR)
+                for line in lines:
+                    x1, y1, x2, y2 = line[0]
+                    cv2.line(lines_img_color, (x1, y1), (x2, y2), (0, 255, 0), 2)  
+                show_image(lines_img_color, "Hough Lines")
+        return lines
 
     #insert advanced math functions to magically solve everything here
-    def detect_table_edges(self, image_path,step=False):
+    def detect_table_boundary(self, image_path,step=False):
         """
         Detects edges in an image of a table tennis table
         Args:
@@ -111,7 +124,7 @@ class CameraAnalysis:
         Returns:
             camera_ratio (float): Ratio of camera distance to table dimensions.
         """
-        l,w = self.detect_table_edges(image_path)     
+        l,w = self.detect_table_boundary(image_path)     
         #map pixel dimensions to real-world dimensions
         self.camera_ratio_x = self.table_length / l
         self.camera_ratio_y = self.table_width / w
@@ -163,24 +176,78 @@ class CameraAnalysis:
         corners = np.argwhere(dst > 0.01 * dst.max())
         return corners
 
-    def annotate_corners(self,image,corners):
+    def annotate_points(self,image,points,color=(0,0,255),title="Annotated Points"):
         """
-        Annotates detected corners on the image.
+        Annotates detected points on the image.
         Args:
             image (numpy.ndarray): Input image.
         Returns:
-            annotated_image (numpy.ndarray): Image with annotated corners.
+            annotated_image (numpy.ndarray): Image with annotated points.
         """
-        for corner in corners:
-            y, x = corner
-            cv2.circle(image, (x, y), 1, (0, 0, 255), -1)
-        show_image(image, "Annotated Corners")
-        return image
+        image_copy = image.copy()
+        for point in points:
+            y, x = point
+            cv2.circle(image_copy, (x, y), 1, color, -1)
+        show_image(image_copy, title)
+        return image_copy
+    
+    def get_intersections_between_points_and_line(self,points,line):
+        """
+        Finds intersection points between a set of points and a line.
+        Args:
+            points (list): List of points (x, y).
+            line (tuple): Line defined by two points ((x1, y1), (x2, y2)).
+        Returns:
+            intersections (list): List of intersection points.
+        """
+        (x1, y1), (x2, y2) = line[0].reshape(2, 2)
+        intersections = []
+        for (px, py) in points:
+            # Check if point is on the line segment
+            if min(x1, x2) <= px <= max(x1, x2) and min(y1, y2) <= py <= max(y1, y2):
+                # Calculate the area of the triangle formed by the line and the point
+                area = abs((x2 - x1) * (py - y1) - (px - x1) * (y2 - y1))
+                if area < 10000000000000000:  # Threshold to consider as intersection
+                    intersections.append((px, py))
+        return intersections
+    
+    def get_intersections_between_point_and_lines(self,points,lines,image=None):
+        """
+        Finds intersection points between a set of points and multiple lines.
+        Args:
+            points (list): List of points (x, y).
+            lines (list): List of lines, each defined by two points ((x1, y1), (x2, y2)).
+        Returns:
+            intersections (list): List of intersection points.
+        """
+        intersections = []
+        for line in lines:
+            print("Line is",line)
+            line_intersections = self.get_intersections_between_points_and_line(points, line)
+            intersections.extend(line_intersections)
+        if image is not None:
+            self.annotate_points(image, intersections, color=(255, 0, 0), title="Intersections")
+        return intersections
+    
+    def intersect_table_edges_and_corners(self,image_path):
+        """
+        Detects table edges and Harris corners, then finds their intersections.
+        Args:
+            image_path (str): Path to the input image.
+        Returns:
+            intersections (list): List of intersection points.
+        """
+        bounding_rect = self.detect_table_boundary(image_path)
+        table_crop = self.get_cropped_image(image_path, bounding_rect)
+        points = self.harris_corners(table_crop)
+        edges = self.edge_detection(table_crop)
+        edges = self.hough_line_detection(edges)
+        intersections = self.get_intersections_between_point_and_lines(points, edges,image=table_crop)
+        return intersections
 
 if __name__ == "__main__":
-    image_path = "akash_004.jpg"
     camera_analysis = CameraAnalysis()
-    bounding_rect = camera_analysis.detect_table_edges(image_path)
-    table_crop = camera_analysis.get_cropped_image(image_path, bounding_rect)
-    corners = camera_analysis.harris_corners(table_crop)
-    camera_analysis.annotate_corners(table_crop, corners)
+    for i in range(1,5):
+        image_path = f"akash_00{i}.jpg"
+        intersections = camera_analysis.intersect_table_edges_and_corners(image_path)
+    
