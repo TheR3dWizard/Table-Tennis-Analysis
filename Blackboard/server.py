@@ -3,6 +3,8 @@ from services import RabbitMQService, PostgresService
 
 app = Flask(__name__)
 db = PostgresService(username="pw1tt", password="securepostgrespassword")
+mqtt = RabbitMQService(username="pw1tt", password="securerabbitmqpassword")
+consumer_column_queue_map = dict()
 
 
 @app.route("/")
@@ -56,6 +58,20 @@ def update_column():
         return jsonify(message=f"Updated {column} for frameid {frameid} to {value}")
     except Exception as e:
         return jsonify(error=str(e)), 500
+
+
+@app.route("/placerequest", methods=["POST"])
+def placerequest():
+    message = request.json
+    targetqueue = consumer_column_queue_map.get(tuple(message["columnslist"]), None)
+    if not targetqueue:
+        return (
+            jsonify(
+                message="Unable to determine the right target queue for requested columns"
+            ),
+            500,
+        )
+    mqtt.publish(str(message), targetqueue)
 
 
 if __name__ == "__main__":
