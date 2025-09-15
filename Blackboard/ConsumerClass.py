@@ -7,6 +7,7 @@ class Consumer:
     def __init__(
         self,
         name,
+        logicfunction=print,
         id=None,
         queuename=None,
         rabbitmqusername="default",
@@ -14,6 +15,7 @@ class Consumer:
         serverurl="localhost:6060",
     ):
         self.name = name
+        self.logic = logicfunction
         self.id = id or str(uuid.uuid4())
         self.queuename = queuename or self.name.lower().replace(" ", "-")
         print(
@@ -27,19 +29,8 @@ class Consumer:
             f"{self.name} consumer sucessfully connected to RabbitMQ with {rabbitmqusername} credential"
         )
         self.server = serverurl
-        self.idqueuemap = dict()
 
         self.rabbitmqservice.consume(self.messagecallback, self.queuename)
-        self.rabbitmqservice.consume(self.broadcastcallback, "bcast")
-
-    def placebroadcast(self):
-        message = {
-            "type": "join",
-            "consumerid": self.id,
-            "consumerqueue": self.queuename,
-        }
-
-        self.rabbitmqservice.publish(str(message), queue="bcast")
 
     def placerequest(self, columnslist, targetid, targetqueue):
         message = {
@@ -49,7 +40,10 @@ class Consumer:
             "targetid": targetid,
             "columnslist": columnslist,
         }
-        self.rabbitmqservice.publish(str(message), queue=targetqueue)
+        # [ABSTRACTED] self.rabbitmqservice.publish(str(message), queue=targetqueue)
+        response = requests.post(f"{self.server}/placerequest", json=message)
+
+        return response.json()
 
     def placesuccess(self, requestid, requesterid, targetid, requestorqueue):
         message = {
@@ -60,12 +54,12 @@ class Consumer:
         }
         self.rabbitmqservice.publish(str(message), queue=requestorqueue)
 
-    def broadcastcallback(self, body):
-        self.idqueuemap[body["consumerid"]] = body["consumerqueue"]
-
     def messagecallback(self, body):
         print(f"Message Received: {body}")
+
         # Perform callback logic with context specific model
+        self.logic(body)
+
         self.placesuccess(
             body["requestid"],
             body["requesterid"],
