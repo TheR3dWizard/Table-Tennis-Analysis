@@ -2,20 +2,17 @@ from services import RabbitMQService
 import uuid
 import requests
 
-
 class Consumer:
     def __init__(
         self,
         name,
-        logicfunction=print,
         id=None,
         queuename=None,
         rabbitmqusername="default",
         rabbitmqpassword="default",
-        serverurl="localhost:6060",
+        serverurl="http://localhost:6060",
     ):
         self.name = name
-        self.logic = logicfunction
         self.id = id or str(uuid.uuid4())
         self.queuename = queuename or self.name.lower().replace(" ", "-")
         print(
@@ -29,43 +26,61 @@ class Consumer:
             f"{self.name} consumer sucessfully connected to RabbitMQ with {rabbitmqusername} credential"
         )
         self.server = serverurl
+        self.hashmap = {}
 
+        # self.rabbitmqservice.consume(self.messagecallback, self.queuename)
+
+    def threadstart(self):
         self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
-    def placerequest(self, columnslist, targetid, targetqueue):
+    def placerequest(self, columnslist, targetid, returnmessageid):
         message = {
             "type": "request",
             "requestid": str(uuid.uuid4()),
             "requesterid": self.id,
+            "returnqueue": self.queuename,
             "targetid": targetid,
             "columnslist": columnslist,
+            "returnmessageid": returnmessageid
         }
         # [ABSTRACTED] self.rabbitmqservice.publish(str(message), queue=targetqueue)
         response = requests.post(f"{self.server}/placerequest", json=message)
 
         return response.json()
 
-    def placesuccess(self, requestid, requesterid, targetid, requestorqueue):
+    def placesuccess(self, requestid, requesterid, targetid, requestorqueue, returnmessageid):
         message = {
             "type": "success",
             "requestid": requestid,
             "requesterid": requesterid,
             "targetid": targetid,
+            "returnqueue": requestorqueue,
+            "returnmessageid": returnmessageid
         }
         self.rabbitmqservice.publish(str(message), queue=requestorqueue)
 
     def messagecallback(self, body):
         print(f"Message Received: {body}")
 
+        body = eval(body)  # convert string to dict
         # Perform callback logic with context specific model
-        self.logic(body)
+        # print(body)
+        if body["type"] == "request":
+            self.logic(body)
 
-        self.placesuccess(
-            body["requestid"],
-            body["requesterid"],
-            body["targetid"],
-            self.idqueuemap.get(body["requestorqueue"], "default"),
-        )
+            self.placesuccess(
+                body["requestid"],
+                body["requesterid"],
+                body["targetid"],
+                body["returnqueue"],
+                body["returnmessageid"]
+            )
+        elif body["type"] == "success":
+            if body["returnmessageid"] in self.hashmap:
+                messagebody = self.hashmap.pop(body["requestid"])
+                self.logic(messagebody)
+            else:
+                print("Request ID not found in hashmap. Ignoring success message.")
 
     def check(self, frameid, columnlist):
         message = {"frameid": frameid, "columns": columnlist}

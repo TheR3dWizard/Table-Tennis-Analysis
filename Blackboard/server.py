@@ -1,10 +1,25 @@
 from flask import Flask, jsonify, request
 from services import RabbitMQService, PostgresService
+from typing import Set
 
 app = Flask(__name__)
 db = PostgresService(username="pw1tt", password="securepostgrespassword")
 mqtt = RabbitMQService(username="pw1tt", password="securerabbitmqpassword")
-consumer_column_queue_map = dict()
+mqtt.connect()
+
+consumer_column_queue_map = {
+    "tablex1" : "table-vertex-detection",
+    "tabley1" : "table-vertex-detection", 
+    "tablex2" : "table-vertex-detection", 
+    "tabley2" : "table-vertex-detection", 
+    "tablex3" : "table-vertex-detection", 
+    "tabley3" : "table-vertex-detection", 
+    "tablex4" : "table-vertex-detection", 
+    "tabley4" : "table-vertex-detection",
+    "ballx":"ball-position-detection",
+    "bally":"ball-position-detection",
+    "ballz":"ball-position-detection",
+}
 
 
 @app.route("/")
@@ -63,16 +78,17 @@ def update_column():
 @app.route("/placerequest", methods=["POST"])
 def placerequest():
     message = request.json
-    targetqueue = consumer_column_queue_map.get(tuple(message["columnslist"]), None)
-    if not targetqueue:
+    targetqueue:Set = set([consumer_column_queue_map.get(c, None) for c in message["columnslist"]])
+    print(targetqueue)
+    if len(targetqueue) != 1:
         return (
             jsonify(
-                message="Unable to determine the right target queue for requested columns"
+                message="Unable to determine the right target queue / multiple queues detected for requested columns"
             ),
             500,
         )
-    mqtt.publish(str(message), targetqueue)
-
+    mqtt.publish(str(message), targetqueue.pop())
+    return {"message":"placed message", "status":200}
 
 if __name__ == "__main__":
     app.run(debug=True, port=6060, host="0.0.0.0")
