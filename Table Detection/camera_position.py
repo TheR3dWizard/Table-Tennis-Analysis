@@ -71,7 +71,7 @@ class CameraAnalysis:
         edges = self.edge_detection(image)
 
         # Smooth edges
-        size = 7
+        size = 10
         kernel = np.ones((size, size), np.uint8)   # adjust kernel size as needed
         closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
 
@@ -114,7 +114,68 @@ class CameraAnalysis:
         show_image(edges, "Detected Table")
 
         return x,y,l,w
+    
+    def all_contours(self,image,step=False,return_image=False):
+        """
+        Finds all contours in a binary image.
+        Args:
+            image (numpy.ndarray): Binary image.
+        Returns:
+            contours (list): List of all contours found.
+        """
+        contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if step:
+            contour_img = np.zeros_like(image)
+            contour_img = cv2.cvtColor(contour_img, cv2.COLOR_GRAY2BGR)  # Convert to 3-channel for drawing
+            cv2.drawContours(contour_img, contours, -1, (0, 255, 0), 2)  # Draw all contours
+            show_image(contour_img, "All Contours")
+        if return_image:
+            return contours, contour_img
+        return contours
 
+    def largest_contour(self,image,step=False):
+        """
+        Finds the largest contour in a binary image.
+        Args:
+            image (numpy.ndarray): Binary image.
+        Returns:
+            largest_contour (numpy.ndarray): The largest contour found.
+        """
+        contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return None
+        largest_contour = max(contours, key=cv2.contourArea)
+        epsilon = 0.02 * cv2.arcLength(largest_contour, True)  # tweak factor
+        largest_contour = cv2.approxPolyDP(largest_contour, epsilon, True)
+        if step:
+            contour_img = np.zeros_like(image)
+            contour_img = cv2.cvtColor(contour_img, cv2.COLOR_GRAY2BGR)  # Convert to 3-channel for drawing
+            cv2.drawContours(contour_img, [largest_contour], 0, (0, 255, 0), 2)  # Draw the largest contour
+            show_image(contour_img, "Largest Contour")
+        return largest_contour
+
+    def get_red_mask(self, image, show=False):
+        """
+        Returns a mask isolating the red regions in the image.
+        Args:
+            image (numpy.ndarray): Input BGR image.
+            show (bool): If True, displays the mask.
+        Returns:
+            mask (numpy.ndarray): Binary mask of red regions.
+        """
+        # Convert to HSV color space
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        # Red can wrap around the hue, so use two ranges
+        lower_red1 = np.array([0, 70, 50])
+        upper_red1 = np.array([10, 255, 255])
+        lower_red2 = np.array([170, 70, 50])
+        upper_red2 = np.array([180, 255, 255])
+        mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+        mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+        mask = cv2.bitwise_or(mask1, mask2)
+        if show:
+            show_image(mask, "Red Mask")
+        return mask
     
     def find_camera_ratio(self, image_path):
         """
@@ -161,7 +222,7 @@ class CameraAnalysis:
         cropped_image = image[y:y+h, x:x+w]
         return cropped_image
 
-    def harris_corners(self,image):
+    def harris_corners(self,image,channels=3):
         """
         Detects Harris corners in the image.
         Args:
@@ -169,7 +230,10 @@ class CameraAnalysis:
         Returns:
             corners (list): List of detected corner points.
         """
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        if channels == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image
         gray = np.float32(gray)
         dst = cv2.cornerHarris(gray, 2, 3, 0.04)
         dst = cv2.dilate(dst, None)
@@ -244,10 +308,127 @@ class CameraAnalysis:
         edges = self.hough_line_detection(edges)
         intersections = self.get_intersections_between_point_and_lines(points, edges,image=table_crop)
         return intersections
+    
+    def straighten_contour(self, contour):
+        """
+        Approximates a contour with straight lines (polygonal curve).
+        Args:
+            contour (numpy.ndarray): Input contour.
+        Returns:
+            straight_contour (numpy.ndarray): Approximated contour with straight lines.
+        """
+        epsilon = 0.02 * cv2.arcLength(contour, True)
+        straight_contour = cv2.approxPolyDP(contour, epsilon, True)
+        return straight_contour
+    
+    def cvt_contour_to_image(self, contour, image_shape):
+        """
+        Converts a contour to a binary image.
+        Args:
+            contour (numpy.ndarray): Input contour.
+            image_shape (tuple): Shape of the output image (height, width).
+        Returns:
+            contour_image (numpy.ndarray): Binary image with the contour drawn.
+        """
+        contour_image = np.zeros(image_shape, dtype=np.uint8)
+        cv2.drawContours(contour_image, [contour], -1, (255), thickness=cv2.FILLED)
+        return contour_image
+    
+    def find_centroid(self, contour):
+        """
+        Finds the centroid of a contour.
+        Args:
+            contour (numpy.ndarray): Input contour.
+        Returns:
+            centroid (tuple): (x, y) coordinates of the centroid.
+        """
+        M = cv2.moments(contour)
+        if M["m00"] == 0:
+            return None
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        return (cx, cy)
+
+    def find_convex_hull_contour(self, contour):
+        """
+        Finds the convex hull of a contour.
+        Args:
+            contour (numpy.ndarray): Input contour (N, 1, 2) or (N, 2).
+        Returns:
+            hull (numpy.ndarray): Convex hull points.
+        """
+        contour = np.array(contour)
+        if len(contour.shape) == 2:
+            contour = contour.reshape(-1, 1, 2)
+        hull = cv2.convexHull(contour)
+        return hull
+    
+    def extract_table_corners(self,mask):
+        """
+        Extracts the four corners of the table from the image.
+        Args:
+            image (numpy.ndarray): Input image.
+        Returns:
+            corners (list): List of corner points.
+        """
+        hsv = cv2.cvtColor(mask, cv2.COLOR_BGR2HSV)
+
+        # Red color range (two ranges because red wraps around 0° in HSV)
+        lower_red1 = np.array([0, 120, 70])
+        upper_red1 = np.array([10, 255, 255])
+        lower_red2 = np.array([170, 120, 70])
+        upper_red2 = np.array([180, 255, 255])
+
+        # Binary mask for the table
+        table_mask = cv2.inRange(hsv, lower_red1, upper_red1) | cv2.inRange(hsv, lower_red2, upper_red2)
+
+        # Find contours
+        contours, _ = cv2.findContours(table_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Take largest contour (the table)
+        c = max(contours, key=cv2.contourArea)
+
+        # Approximate polygon
+        epsilon = 0.02 * cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, epsilon, True)
+
+        if len(approx) != 4:
+            # fallback: fit a rectangle if not exactly 4 points
+            rect = cv2.minAreaRect(c)
+            approx = cv2.boxPoints(rect)
+
+        corners = np.intp(approx).reshape(-1, 2)
+
+        # Draw on image for visualization
+        output = mask.copy()
+        for (x, y) in corners:
+            cv2.circle(output, (x, y), 5, (255, 255, 255), -1)
+
+        cv2.imshow("Table Corners", cv2.cvtColor(output, cv2.COLOR_BGR2RGB))
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        print("Corners:", corners)
+
 
 if __name__ == "__main__":
     camera_analysis = CameraAnalysis()
-    for i in range(1,5):
-        image_path = f"akash_00{i}.jpg"
-        intersections = camera_analysis.intersect_table_edges_and_corners(image_path)
-    
+    image_path = f"../images/15.png"
+    image = cv2.imread(image_path)
+    # table = camera_analysis.get_red_mask(cv2.imread(image_path),show=True)
+    # table_contour = camera_analysis.all_contours(table,step=True)[0]
+    # # og_contour_image = camera_analysis.cvt_contour_to_image(table_contour[0], table.shape)
+    # straight_contour = camera_analysis.straighten_contour(table_contour)
+    # contour_image = camera_analysis.cvt_contour_to_image(straight_contour, table.shape)
+    # show_image(contour_image,"Straight Contour Image")
+    # contour_image = cv2.cvtColor(contour_image, cv2.COLOR_GRAY2BGR)
+    # corners = camera_analysis.harris_corners(contour_image,channels=3)
+    # camera_analysis.annotate_points(contour_image,corners,title="Corners on Cont ours")
+    # convex_hull = camera_analysis.find_convex_hull_contour(straight_contour)
+
+    # camera_analysis.extract_table_corners(image)
+    camera_analysis.detect_table_boundary(image_path,step=True)
+
+
+
+
