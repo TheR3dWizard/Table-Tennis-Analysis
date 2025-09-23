@@ -11,7 +11,7 @@ from skimage.metrics import structural_similarity as ssim
 SSIM_THRESHOLD = 0.99  # SSIM threshold for detecting similar frames (1.0 is identical)
 
 
-def process_video(video_path):
+def process_video(video_path, filter=False):
     video_path = os.path.abspath(video_path)
     video_dir = os.path.dirname(video_path)
     video_name, _ = os.path.splitext(os.path.basename(video_path))
@@ -44,8 +44,13 @@ def process_video(video_path):
             cv2.imwrite(os.path.join(frames_dir, frame_filename), frame)
             unique_index += 1
         else:
-            score = ssim(prev_frame_gray, frame_gray)
-            if score < SSIM_THRESHOLD:
+            if filter:
+                score = ssim(prev_frame_gray, frame_gray)
+                if score < SSIM_THRESHOLD:
+                    frame_filename = f"{unique_index:05d}.png"
+                    cv2.imwrite(os.path.join(frames_dir, frame_filename), frame)
+                    unique_index += 1
+            else:
                 frame_filename = f"{unique_index:05d}.png"
                 cv2.imwrite(os.path.join(frames_dir, frame_filename), frame)
                 unique_index += 1
@@ -54,8 +59,9 @@ def process_video(video_path):
 
     cap.release()
 
-    removed = total_frames - unique_index
-    removed_ratio = removed / total_frames if total_frames > 0 else 0
+    if filter:
+        removed = total_frames - unique_index
+        removed_ratio = removed / total_frames if total_frames > 0 else 0
     # print(f"Processed {video_name}:")
     # print(f"  Total frames: {total_frames}")
     # print(f"  Unique frames saved: {unique_index}")
