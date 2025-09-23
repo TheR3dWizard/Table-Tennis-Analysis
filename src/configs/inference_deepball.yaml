@@ -1,8 +1,9 @@
-WASB_ROOT: /home/gossard/Git/blurball
 defaults:
         - _self_
+        - global
         - runner: inference
         - model: deepball
+        - dataset: tabletennis
         - dataloader: default
         - detector: deepball
         - transform: default
