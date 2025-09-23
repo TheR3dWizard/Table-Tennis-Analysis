@@ -32,16 +32,35 @@ def conv3x3(in_planes, out_planes, stride=1):
     )
 
 
+class SEBlock(nn.Module):
+    def __init__(self, channels, reduction=16):
+        super(SEBlock, self).__init__()
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channels, channels // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channels // reduction, channels, bias=False),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y
+
+
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, reduction=16):
         super(BasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
         self.bn2 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
+        self.se = SEBlock(planes, reduction=reduction)
         self.downsample = downsample
         self.stride = stride
 
@@ -54,6 +73,7 @@ class BasicBlock(nn.Module):
 
         out = self.conv2(out)
         out = self.bn2(out)
+        out = self.se(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -297,9 +317,9 @@ blocks_dict = {"BASIC": BasicBlock, "BOTTLENECK": Bottleneck}
 
 
 # https://github.com/HRNet/HRNet-Image-Classification/blob/master/lib/models/cls_hrnet.py
-class BlurBall(nn.Module):
+class BlurBall_SE(nn.Module):
     def __init__(self, cfg, **kwargs):
-        super(BlurBall, self).__init__()
+        super(BlurBall_SE, self).__init__()
 
         self._frames_in = cfg["frames_in"]
         self._frames_out = cfg["frames_out"]
