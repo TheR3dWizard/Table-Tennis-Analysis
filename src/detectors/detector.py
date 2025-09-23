@@ -67,7 +67,7 @@ class TracknetV2Detector(object):
                 )
                 if not osp.exists(model_path):
                     FileNotFoundError("{} not found".format(model_path))
-            checkpoint = torch.load(model_path)
+            checkpoint = torch.load(model_path, map_location="cuda:0")
             self._model.load_state_dict(checkpoint["model_state_dict"])
             self._model = self._model.to(self._device)
             self._model = nn.DataParallel(self._model, device_ids=self._gpus)
