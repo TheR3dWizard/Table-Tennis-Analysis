@@ -317,9 +317,9 @@ blocks_dict = {"BASIC": BasicBlock, "BOTTLENECK": Bottleneck}
 
 
 # https://github.com/HRNet/HRNet-Image-Classification/blob/master/lib/models/cls_hrnet.py
-class BlurBall_SE(nn.Module):
+class BlurBall(nn.Module):
     def __init__(self, cfg, **kwargs):
-        super(BlurBall_SE, self).__init__()
+        super(BlurBall, self).__init__()
 
         self._frames_in = cfg["frames_in"]
         self._frames_out = cfg["frames_out"]
