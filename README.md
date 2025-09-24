@@ -1,6 +1,6 @@
 # BlurBall
 
-Code and dataset for the paper: **[BlurBall: Joint Ball and Motion Blur Estimation for Table Tennis Ball Tracking](https://cogsys-tuebingen.github.io/blurball/)**
+Code and dataset for the paper: **[BlurBall: Joint Ball and Motion Blur Estimation for Table Tennis Ball Tracking]([https://cogsys-tuebingen.github.io/blurball/](https://arxiv.org/abs/2509.18387))**
 
 ![demo](demo.gif)
 
@@ -105,6 +105,6 @@ If you use this work, please cite:
 @article{gossard2025blurball,
   title   = {BlurBall: Joint Ball and Motion Blur Estimation for Table Tennis Ball Tracking},
   author  = {Thomas Gossard and Filip Radovic and Andreas Ziegler and Andreas Zell},
-  journal = {arXiv preprint arXiv:2509.xxxxx},
+  journal = {arXiv preprint arXiv:2509.18387},
   year    = {2025}
 }
