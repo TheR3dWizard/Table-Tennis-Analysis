@@ -6,18 +6,14 @@ Code and dataset for the paper: **[BlurBall: Joint Ball and Motion Blur Estimati
 
 This repository builds upon [WASB: Widely Applicable Strong Baseline for Sports Ball Detection and Tracking](https://github.com/nttcom/WASB-SBDT/) with additional training scripts, dataset support, and modifications for blur-aware ball detection.
 
----
 
 ## Features at a Glance 🚀
 
 - **New dataset**: 64k frames from real table tennis games, annotated with ball positions and explicit motion blur attributes (length + orientation).  
 - **Blur-aware labeling**: A new annotation convention placing the ball at the blur center, improving accuracy across detectors.  
 - **BlurBall model**: An HRNet-based multi-frame detector extended with attention mechanisms (Squeeze-and-Excitation) to jointly predict ball position and blur.  
-- **Trajectory prediction**: Incorporates blur cues (length + angle) to improve short-term trajectory forecasting.  
 - **Pretrained models**: Ready-to-use weights for BlurBall and other baselines (WASB, TrackNetV2, Monotrack, DeepBall, BallSeg).  
-- **Flexible inference**: Adjustable step sizes (1-step vs. 3-step) and confidence thresholds for speed/accuracy trade-offs.  
 
----
 
 ## Dataset
 
