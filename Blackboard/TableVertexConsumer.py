@@ -61,5 +61,5 @@ class TableVertexConsumer(Consumer):
         return True
 
 if __name__ == "__main__":
-    c1 = TableVertexConsumer(rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword")
+    c1 = TableVertexConsumer(rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword", id="table-vertex-detection-consumer")
     c1.threadstart()

@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from services import RabbitMQService, PostgresService
 from typing import Set
+import pprint
 
 app = Flask(__name__)
 db = PostgresService(username="pw1tt", password="securepostgrespassword")
@@ -35,15 +36,18 @@ def check_and_return():
             return jsonify(error="Missing JSON body"), 400
 
         frameid = data.get("frameid")
-        columnlist = data.get("columnlist", [])
+        columnlist = data.get("columns", [])
+        pprint.pprint(f"Received check_and_return request for frameid {frameid} and columns {columnlist}")
         if frameid is None or not isinstance(columnlist, list):
             return jsonify(error="Missing or invalid 'frameid' or 'columnlist'"), 400
 
         dbresult = db.get_columns_and_values_by_frameid(frameid)
+        pprint.pprint(f"Database result for frameid {frameid}: {dbresult}")
         if dbresult is None:
             return jsonify(error=f"No data found for frameid {frameid}"), 404
 
-        result = {column: dbresult.get(column, None) for column in columnlist}
+        # result = {column: dbresult.get(column, None) for column in columnlist}
+        result = {column: dbresult.get(column) for column in columnlist if column in dbresult and dbresult.get(column) is not None}
         return jsonify(result)
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -79,7 +83,7 @@ def update_column():
 def placerequest():
     message = request.json
     targetqueue:Set = set([consumer_column_queue_map.get(c, None) for c in message["columnslist"]])
-    print(targetqueue)
+    print(f"Placed request from {message['requesterid']} to {targetqueue} for {message['columnslist']}")
     if len(targetqueue) != 1:
         return (
             jsonify(

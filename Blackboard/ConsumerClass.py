@@ -1,6 +1,8 @@
-from services import RabbitMQService
+from services import RabbitMQService, PostgresService
 import uuid
 import requests
+import time
+import pprint
 
 class Consumer:
     def __init__(
@@ -27,7 +29,8 @@ class Consumer:
         )
         self.server = serverurl
         self.hashmap = {}
-
+        self.pgs = PostgresService(username="pw1tt", password="securepostgrespassword")
+        self.pgs.connect()
         # self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
     def threadstart(self):
@@ -43,12 +46,14 @@ class Consumer:
             "columnslist": columnslist,
             "returnmessageid": returnmessageid
         }
+        print(f"Placing request... for {columnslist} with ID {message['requestid']} to {targetid}")
         # [ABSTRACTED] self.rabbitmqservice.publish(str(message), queue=targetqueue)
         response = requests.post(f"{self.server}/placerequest", json=message)
 
         return response.json()
 
     def placesuccess(self, requestid, requesterid, targetid, requestorqueue, returnmessageid):
+        print(f"Placing success message... from {self.queuename} to {requestorqueue}")
         message = {
             "type": "success",
             "requestid": requestid,
@@ -60,14 +65,17 @@ class Consumer:
         self.rabbitmqservice.publish(str(message), queue=requestorqueue)
 
     def messagecallback(self, body):
-        print(f"Message Received: {body}")
+        print(f"Message Received:")
 
         body = eval(body)  # convert string to dict
+        pprint.pprint(body)
+
+        time.sleep(4)  # simulate processing time
         # Perform callback logic with context specific model
         # print(body)
         if body["type"] == "request":
             self.logic(body)
-
+            time.sleep(5)  # simulate processing time
             self.placesuccess(
                 body["requestid"],
                 body["requesterid"],
@@ -77,7 +85,7 @@ class Consumer:
             )
         elif body["type"] == "success":
             if body["returnmessageid"] in self.hashmap:
-                messagebody = self.hashmap.pop(body["requestid"])
+                messagebody = self.hashmap.pop(body["returnmessageid"])
                 self.logic(messagebody)
             else:
                 print("Request ID not found in hashmap. Ignoring success message.")
