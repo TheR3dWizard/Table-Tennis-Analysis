@@ -34,7 +34,6 @@ class BallPositionConsumer(Consumer):
 
     def logicfunction(self, messagebody):
         boardresponse = self.check(self.testframeid, ["tablex1", "tabley1", "tablex2", "tabley2", "tablex3", "tabley3", "tablex4", "tabley4"])
-        print(f"Board response: {boardresponse}")
         if not boardresponse:
             print("Table vertices not found for the given frame. Cannot compute ball coordinates.")
             self.placerequest(["tablex1", "tabley1", "tablex2", "tabley2", "tablex3", "tabley3", "tablex4", "tabley4"], "Table Vertex Detection", messagebody["requestid"])

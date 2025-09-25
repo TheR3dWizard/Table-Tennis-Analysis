@@ -46,7 +46,7 @@ class Consumer:
             "columnslist": columnslist,
             "returnmessageid": returnmessageid
         }
-        print(f"Placing request... for {columnslist} with ID {message['requestid']} to {targetid}")
+        print(f"Placing request... for {columnslist} to {targetid}")
         # [ABSTRACTED] self.rabbitmqservice.publish(str(message), queue=targetqueue)
         response = requests.post(f"{self.server}/placerequest", json=message)
 
@@ -65,25 +65,33 @@ class Consumer:
         self.rabbitmqservice.publish(str(message), queue=requestorqueue)
 
     def messagecallback(self, body):
-        print(f"Message Received:")
-
         body = eval(body)  # convert string to dict
-        pprint.pprint(body)
 
-        time.sleep(4)  # simulate processing time
         # Perform callback logic with context specific model
         # print(body)
         if body["type"] == "request":
-            self.logic(body)
+            print(f"\n\n[REQUEST] Message Received:")
+            pprint.pprint(body)
+            print("\n\n")
+
+            logicreturn = self.logic(body)
             time.sleep(5)  # simulate processing time
-            self.placesuccess(
-                body["requestid"],
-                body["requesterid"],
-                body["targetid"],
-                body["returnqueue"],
-                body["returnmessageid"]
-            )
+            if logicreturn:
+                print("Logic executed successfully, sending success message...")
+                self.placesuccess(
+                    body["requestid"],
+                    body["requesterid"],
+                    body["targetid"],
+                    body["returnqueue"],
+                    body["returnmessageid"]
+                )
+            else:
+                print("Logic execution failed or pending, not sending success message.")
+
         elif body["type"] == "success":
+            print(f"\n\n[SUCCESS] Message Received:")
+            pprint.pprint(body)
+            print("\n\n")
             if body["returnmessageid"] in self.hashmap:
                 messagebody = self.hashmap.pop(body["returnmessageid"])
                 self.logic(messagebody)
