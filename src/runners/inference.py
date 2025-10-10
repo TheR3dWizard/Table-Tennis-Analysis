@@ -278,8 +278,8 @@ def inference_video(
             {"Frame": x_fin, "X": x_fin, "Y": y_fin, "Visibility": vis_fin}
         )
     df["Frame"] = df.index
-    df.to_csv(osp.join(frame_dir, "traj.csv"), index=False)
-    print("Saving csv at " + osp.join(frame_dir, "traj.csv"))
+    df.to_csv(osp.join(frame_dir, "ball_traj_2D.csv"), index=False)
+    print("Saving csv at " + osp.join(frame_dir, "ball_traj_2D.csv"))
 
     return {"t_elapsed": t_elapsed, "num_frames": num_frames}
 
