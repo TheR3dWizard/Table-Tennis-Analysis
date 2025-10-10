@@ -167,3 +167,22 @@ datasets/*
 outputs
 wandb/
 weights/
+
+*.zip
+*.jpg
+*.docx
+*.pdf
+*.png
+*.jpeg
+*.webp
+*.json
+*.mp4
+Datasets/Dataset/game1/Clip1/0000.jpg
+Datasets/Dataset/game1/Clip10/Label.csv
+# Datasets/OpenTT/game_1/segmentation_masks/17.png
+Research Papers/applsci-15-05370.pdf
+Datasets/OpenTT/game_1/Unconfirmed 614244.crdownload
+pw1
+.env
+**/__pycache__/
+*.pt
