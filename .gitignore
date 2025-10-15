@@ -5,6 +5,7 @@
 *.png
 *.jpeg
 *.webp
+*.npy
 *.json
 *.mp4
 Datasets/Dataset/game1/Clip1/0000.jpg
