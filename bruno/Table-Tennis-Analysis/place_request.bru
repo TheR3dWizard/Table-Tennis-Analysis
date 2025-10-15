@@ -1,0 +1,29 @@
+meta {
+  name: Place Request
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:6060/placerequest
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "requesterid": "bruno-api-client",
+    "returnqueue": "bruno-api-client-queue",
+    "targetid": "player-heatmap-consumer",
+    "columnslist": [
+      "player1x",
+      "player1y",
+      "player2x",
+      "player2y"
+    ],
+    "returnmessageid": "bruno-test-message-100",
+    "startframeid": 101,
+    "endframeid": 104,
+    "frameid": 197
+  }
+}

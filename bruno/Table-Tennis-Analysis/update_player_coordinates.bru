@@ -1,0 +1,28 @@
+meta {
+  name: Update Player Coordinates
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:6060/update-player-coordinates
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "frameId": 197,
+    "videoId": "sample1.mp4",
+    "both_player_coords_map": {
+      "player1x": 120,
+      "player1y": 340,
+      "player1z": 0,
+      "player2x": 860,
+      "player2y": 360,
+      "player2z": 0
+    }
+  }
+}
+
+
