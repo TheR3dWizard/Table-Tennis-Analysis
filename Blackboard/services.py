@@ -75,6 +75,7 @@ class PostgresService:
         self.password = password
         self.table = "table_tennis_analysis"
         self.connection = None
+        self.VIDEO_TABLE_NAME = "video_data"
 
     def connect(self):
         self.connection = psycopg2.connect(
@@ -84,6 +85,53 @@ class PostgresService:
             host=self.host,
             port=self.port,
         )
+
+    def get_video_path_by_videoid(self, videoid_value):
+        if not self.connection:
+            self.connect()
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                SELECT videoPath
+                FROM {self.VIDEO_TABLE_NAME}
+                WHERE videoId = %s
+            """,
+                (videoid_value,),
+            )
+            result = cursor.fetchone()
+            return result[0] if result else None
+
+    def get_video_data_by_videoid(self, videoid_value):
+        if not self.connection:
+            self.connect()
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                SELECT *
+                FROM {self.VIDEO_TABLE_NAME}
+                WHERE videoId = %s
+            """,
+                (videoid_value,),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return None
+            colnames = [desc[0] for desc in cursor.description]
+            return dict(zip(colnames, row))
+    
+    def add_video_data(self, videoid_value, videopath_value, videoname_value="", videotag_value=""):
+        if not self.connection:
+            self.connect()
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                INSERT INTO {self.VIDEO_TABLE_NAME} (videoId, videoPath, videoName, videoTag)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (videoId) DO NOTHING
+            """,
+                (videoid_value, videopath_value, videoname_value, videotag_value),
+            )
+            self.connection.commit()
 
     def get_columns_and_values_by_frameid(self, frameid_value):
         if not self.connection:
