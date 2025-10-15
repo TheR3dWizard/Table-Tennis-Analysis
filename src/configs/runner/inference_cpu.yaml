@@ -1,0 +1,9 @@
+name: inference_cpu
+device: cpu
+gpus: []
+vis_result: True
+vis_hm: True
+vis_traj: False
+model_path: 
+eval:
+  score_threshold: 0.5
