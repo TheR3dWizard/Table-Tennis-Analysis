@@ -6,6 +6,13 @@
 python src/main.py --config-name=inference +runner/inference=inference_cpu model=blurball detector=blurball tracker=online_blur +input_vid="<VIDEO_PATH>" detector.model_path="src/blurball_best" detector.step=1 detector.postprocessor.score_threshold=0.7 WASB_ROOT="<WORKING_DIR_ROOT_PATH>"
 ```
 
+## Command to Run BlurBall Server
+
+```sh
+curl -N -X POST http://localhost:8000/predict-video \
+  -F video=@"/Users/akashshanmugaraj/Documents/Personal Projects/Table-Tennis-Analysis/assets/rallies_02.mp4"
+```
+
 Code and dataset for the paper: **[BlurBall: Joint Ball and Motion Blur Estimation for Table Tennis Ball Tracking]([https://cogsys-tuebingen.github.io/blurball/](https://arxiv.org/abs/2509.18387))**
 
 ![demo](demo.gif)
