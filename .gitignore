@@ -16,3 +16,4 @@ pw1
 .env
 **/__pycache__/
 *.pt
+outputs/
