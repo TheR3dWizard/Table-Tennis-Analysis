@@ -1,5 +1,12 @@
 """
-tt_pose_hip_heatmap.py
+tt_pose_heatmap.py
+
+Run Command:
+python3 "Heatmap/tt_pose_heatmap.py" \
+  --video "assets/rallies_02.mp4" \
+  --model "yolo11n-pose.pt" \
+  --out_dir "outputs/hip_heatmaps" \
+  --num_players 2 --min_track_points 100
 
 Requirements:
  - ultralytics (YOLO11): pip install ultralytics
@@ -11,11 +18,14 @@ This script:
  - extracts hip keypoints per tracked person (left_hip idx=11, right_hip idx=12 in COCO order),
  - accumulates hip positions per identity,
  - writes per-player heatmap PNGs and a combined overlay on a sample frame.
+ - analyze_video() function (demonstrated in demonstration.py) can be used as a standalone function to analyze a video and return the frame_map and overlay_path. 
 """
 
 import argparse
 import torch
 import os
+import hashlib
+from datetime import datetime
 from ultralytics import YOLO
 import cv2
 import numpy as np
@@ -103,38 +113,49 @@ def extract_hip_point_from_keypoints(kp_pts, frame_w, frame_h):
         return None
     return float(chosen[0]), float(chosen[1])
 
-def main(args):
-    ensure_dir(args.out_dir)
-    # Load the YOLO11n pose model
-    # model file name for official pose variant: "yolo11n-pose.pt"
-    model_name = args.model if args.model else "yolo11n-pose.pt"
-    model = YOLO(model_name)
+def analyze_video(video,
+                  start_frame=0,
+                  end_frame=-1,
+                  model=None,
+                  tracker="bytetrack.yaml",
+                  confidence=0.3,
+                  device=None,
+                  point_radius=6,
+                  sigma=8.0,
+                  out_dir="outputs",
+                  num_players=2,
+                  min_track_points=50):
+    """
+    Run tracking+pose on a video, keep the main players, build heatmaps, and
+    return per-frame positions for the two selected players and the overlay path.
 
-    # Run tracking on the video (tracker default shown in docs)
-    # model.track will perform detection+association; returns a results iterator.
-    print(f"Running model.track on {args.video} with model {model_name} ...")
-    track_results = model.track(source=args.video,
-                                tracker=args.tracker or "bytetrack",
-                                conf=args.confidence,
-                                stream=True,
-                                device=args.device or None,
-                                persist=True)  # persist True to return results for all frames
+    Returns: (frame_map, overlay_path)
+      - frame_map: {frame_index: {player1xposition:int, player1yposition:int,
+                                  player2xposition:int, player2yposition:int}}
+      - overlay_path: str full path to saved combined heatmap overlay PNG
+    """
+    ensure_dir(out_dir)
+    model_name = model if model else "yolo11n-pose.pt"
+    yolo_model = YOLO(model_name)
 
-    # data structure: dict mapping track_id -> list of hip positions (x,y)
+    track_results = yolo_model.track(source=video,
+                                     tracker=tracker or "bytetrack",
+                                     conf=confidence,
+                                     stream=True,
+                                     device=device or None,
+                                     persist=True)
+
     player_hips = {}
-    # also save a sample frame (first frame) for overlay reference
+    # Per-frame temporary store: frame_idx -> {track_id: (x,y)}
+    per_frame_positions = {}
     sample_frame = None
-    sample_frame_shape = None
     frame_index = 0
 
     for r in track_results:
-        # Each 'r' is a Result object for one frame
-        # Obtain the frame as numpy (r.orig_img or r.orig_frame)
-        if frame_index < args.start_frame:
+        if frame_index < start_frame:
             frame_index += 1
             continue
-
-        if args.end_frame > 0 and frame_index > args.end_frame:
+        if end_frame > 0 and frame_index > end_frame:
             break
 
         frame = None
@@ -142,132 +163,164 @@ def main(args):
             frame = r.orig_img
         elif hasattr(r, "orig_frame"):
             frame = r.orig_frame
-        else:
-            # try to fallback
-            frame = None
 
-        if frame is not None:
-            if sample_frame is None:
-                sample_frame = frame.copy()
-            h, w = frame.shape[:2]
-            sample_frame_shape = (h, w)
+        if frame is not None and sample_frame is None:
+            sample_frame = frame.copy()
 
-        # Attempt to extract tracked boxes/ids and keypoints robustly:
-        # r.boxes (if present) contains BoxList with .id and .xyxy etc.
-        # r.keypoints may contain keypoints per instance.
         ids = []
         kps_list = []
-        # detected instances count:
-        # Attempt 1: r.boxes and r.keypoints
         if hasattr(r, "boxes") and r.boxes is not None:
             try:
-                # r.boxes.id may be available
                 ids = getattr(r.boxes, "id", None)
-                # r.keypoints.data often present as Nx(K*3)
                 if hasattr(r, "keypoints") and r.keypoints is not None:
                     kps = getattr(r.keypoints, "data", None)
                     if kps is None:
-                        # maybe r.keypoints itself is array-like
                         kps = r.keypoints
                     kps_list = kps
                 else:
-                    # No keypoints field: maybe keypoints are inside boxes or other attr
                     kps_list = []
             except Exception:
                 ids = []
                 kps_list = []
 
-        # Fallback: r.masks or r.boxes.xyxy etc won't help for pose.
-        # If we can't find ids/kps in that frame, skip
         if ids is None:
-            # maybe tracker not returning ids; try r.boxes.xyxy and no ids: skip frame
             frame_index += 1
             continue
 
-        # Cast to list
-        # ids may be tensor-like; convert to python list
         parsed_ids = []
         try:
             parsed_ids = [int(x) for x in ids.tolist()] if hasattr(ids, "tolist") else [int(x) for x in ids]
         except Exception:
-            # if ids is scalar or empty
             try:
                 parsed_ids = [int(ids)]
             except Exception:
                 parsed_ids = []
 
-        # kps_list should have same length as parsed_ids. If not, attempt to read r.keypoints directly:
         if (kps_list is None) or (len(parsed_ids) != len(kps_list)):
-            # try r.keypoints itself as list of arrays
             if hasattr(r, "keypoints") and r.keypoints is not None:
                 try:
                     kps_list = list(r.keypoints)
                 except Exception:
                     kps_list = []
 
-        # Now iterate matched id,kp
+        frame_pos = {}
         for idx, tid in enumerate(parsed_ids):
             if idx >= len(kps_list):
                 continue
             kp = kps_list[idx]
-            # Extract hip point
             if frame is not None:
                 h, w = frame.shape[:2]
             else:
-                h, w = (args.out_h or 720, args.out_w or 1280)
+                h, w = (720, 1280)
             hip = extract_hip_point_from_keypoints(kp, w, h)
             if hip is not None:
                 if tid not in player_hips:
                     player_hips[tid] = []
                 player_hips[tid].append((hip[0], hip[1]))
+                frame_pos[tid] = (hip[0], hip[1])
+
+        if frame_pos:
+            per_frame_positions[frame_index] = frame_pos
         frame_index += 1
 
-    print(f"Processed frames, found {len(player_hips)} tracked identities with hip samples.")
-
-    # Create density maps for each player
     if sample_frame is None:
-        print("No frames were read from the video (check video path). Exiting.")
-        return
+        return {}, ""
 
+    # Choose main players
+    counts = {tid: len(pts) for tid, pts in player_hips.items()}
+    sorted_ids = sorted(counts.keys(), key=lambda k: counts[k], reverse=True)
+    filtered_ids = [tid for tid in sorted_ids if counts.get(tid, 0) >= min_track_points]
+    if len(filtered_ids) < num_players:
+        filtered_ids = sorted_ids[:num_players]
+    else:
+        filtered_ids = filtered_ids[:num_players]
+
+    selected_ids = filtered_ids
+
+    # Build frame map for selected players (player1 -> selected_ids[0], player2 -> selected_ids[1] if exists)
+    frame_map = {}
+    pid1 = selected_ids[0] if len(selected_ids) > 0 else None
+    pid2 = selected_ids[1] if len(selected_ids) > 1 else None
+    for fidx in sorted(per_frame_positions.keys()):
+        pos = per_frame_positions.get(fidx, {})
+        x1, y1 = (-1, -1)
+        x2, y2 = (-1, -1)
+        if pid1 is not None and pid1 in pos:
+            x1, y1 = int(round(pos[pid1][0])), int(round(pos[pid1][1]))
+        if pid2 is not None and pid2 in pos:
+            x2, y2 = int(round(pos[pid2][0])), int(round(pos[pid2][1]))
+        frame_map[fidx] = {
+            "player1xposition": x1,
+            "player1yposition": y1,
+            "player2xposition": x2,
+            "player2yposition": y2,
+        }
+
+    # Heatmaps for selected players only
     h, w = sample_frame.shape[:2]
     combined_map = np.zeros((h, w), dtype=np.float32)
-
-    ensure_dir(os.path.join(args.out_dir, "per_player"))
-    for tid, pts in player_hips.items():
+    ensure_dir(os.path.join(out_dir, "per_player"))
+    for tid in selected_ids:
+        pts = player_hips.get(tid, [])
         density = np.zeros((h, w), dtype=np.float32)
         for (x, y) in pts:
-            add_point_to_map(density, x, y, radius=args.point_radius, intensity=1.0)
-        # smooth the density
+            add_point_to_map(density, x, y, radius=point_radius, intensity=1.0)
         if _HAS_SCIPY:
-            density = gaussian_filter(density, sigma=args.sigma)
+            density = gaussian_filter(density, sigma=sigma)
         else:
-            # fall back to OpenCV blur
-            kr = int(max(3, args.sigma * 2 + 1))
+            kr = int(max(3, sigma * 2 + 1))
             if kr % 2 == 0: kr += 1
-            density = cv2.GaussianBlur(density, (kr, kr), sigmaX=args.sigma)
-        # normalize for visualization
+            density = cv2.GaussianBlur(density, (kr, kr), sigmaX=sigma)
         maxv = density.max() if density.max() > 0 else 1.0
         vis = (density / maxv * 255).astype(np.uint8)
-        # save grayscale heatmap
-        out_file = os.path.join(args.out_dir, "per_player", f"player_{tid:02d}_heatmap.png")
+        out_file = os.path.join(out_dir, "per_player", f"player_{tid:02d}_heatmap.png")
         cv2.imwrite(out_file, vis)
-        print("Saved", out_file)
         combined_map += density
 
-    # Save combined heatmap overlay on sample frame
     if combined_map.max() > 0:
         cmax = combined_map.max()
         norm = (combined_map / cmax * 255).astype(np.uint8)
     else:
         norm = (combined_map * 0).astype(np.uint8)
-    # colorize (use matplotlib colormap)
     cmap = plt.get_cmap("jet")
-    colored = cmap(norm / 255.0)[:, :, :3]  # RGB float [0..1]
+    colored = cmap(norm / 255.0)[:, :, :3]
     colored = (colored * 255).astype(np.uint8)
     overlay = cv2.addWeighted(sample_frame, 0.6, cv2.cvtColor(colored, cv2.COLOR_RGB2BGR), 0.4, 0)
-    cv2.imwrite(os.path.join(args.out_dir, "combined_heatmap_overlay.png"), overlay)
-    cv2.imwrite(os.path.join(args.out_dir, "combined_heatmap_gray.png"), norm)
-    print("Saved combined heatmap images in", args.out_dir)
+
+    # Unique filename using hash(video path + start/end) + timestamp
+    hasher = hashlib.md5()
+    hasher.update(str(video).encode("utf-8"))
+    hasher.update(str(start_frame).encode("utf-8"))
+    hasher.update(str(end_frame).encode("utf-8"))
+    hash_part = hasher.hexdigest()[:8]
+    ts_part = datetime.now().strftime("%Y%m%d_%H%M%S")
+    overlay_name = f"combined_heatmap_overlay_{hash_part}_{ts_part}.png"
+    overlay_path = os.path.join(out_dir, overlay_name)
+
+    cv2.imwrite(overlay_path, overlay)
+    cv2.imwrite(os.path.join(out_dir, "combined_heatmap_gray.png"), norm)
+
+    return frame_map, overlay_path
+
+
+def main(args):
+    frame_map, overlay_path = analyze_video(
+        video=args.video,
+        start_frame=args.start_frame,
+        end_frame=args.end_frame,
+        model=args.model,
+        tracker=args.tracker,
+        confidence=args.confidence,
+        device=args.device,
+        point_radius=args.point_radius,
+        sigma=args.sigma,
+        out_dir=args.out_dir,
+        num_players=args.num_players,
+        min_track_points=args.min_track_points,
+    )
+    print("Saved combined heatmap overlay at", overlay_path)
+    # Optionally dump JSON mapping for CLI usage
+    # Users importing the function will get the dict returned directly
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
@@ -281,6 +334,8 @@ if __name__ == "__main__":
     p.add_argument("--sigma", type=float, default=8.0, help="Gaussian sigma for smoothing density map")
     p.add_argument("--start_frame", type=int, default=0, help="Frame index to start processing from")
     p.add_argument("--end_frame", type=int, default=-1, help="Frame index to stop processing at (-1 means till end)")
+    p.add_argument("--num_players", type=int, default=2, help="Number of primary players to keep based on track length")
+    p.add_argument("--min_track_points", type=int, default=50, help="Minimum hip samples to consider a track a player")
 
     args = p.parse_args()
     main(args)
