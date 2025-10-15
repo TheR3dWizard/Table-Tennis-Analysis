@@ -18,3 +18,4 @@ pw1
 **/__pycache__/
 *.pt
 outputs/
+.idea/
