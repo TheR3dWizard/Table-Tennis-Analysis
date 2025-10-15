@@ -20,6 +20,12 @@ consumer_column_queue_map = {
     "ballx":"ball-position-detection",
     "bally":"ball-position-detection",
     "ballz":"ball-position-detection",
+    "player1x":"player-heatmap-generation",
+    "player1y":"player-heatmap-generation",
+    "player1z":"player-heatmap-generation",
+    "player2x":"player-heatmap-generation",
+    "player2y":"player-heatmap-generation",
+    "player2z":"player-heatmap-generation"
 }
 
 
@@ -78,6 +84,20 @@ def update_column():
     except Exception as e:
         return jsonify(error=str(e)), 500
 
+@app.route("/update-player-coordinates", methods=["POST"])
+def update_player_coordinates():
+    data = request.json
+    videoid = data.get("videoId")
+    both_player_coords_map = data.get("both_player_coords_map", {})
+    if not both_player_coords_map:
+        return jsonify(error="Missing 'both_player_coords_map'"), 400
+    if videoid is None:
+        return jsonify(error="Missing 'videoId'"), 400
+    
+    # Update player coordinates in the database
+    db.update_player_coordinates(videoid, both_player_coords_map)
+
+    return jsonify(message="Player coordinates updated successfully")
 
 @app.route("/placerequest", methods=["POST"])
 def placerequest():

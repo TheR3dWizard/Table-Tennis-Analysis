@@ -1,3 +1,4 @@
+import urllib.parse
 import psycopg2
 import pika
 
@@ -77,6 +78,14 @@ class PostgresService:
         self.connection = None
         self.VIDEO_TABLE_NAME = "video_data"
 
+
+    def encode_filepath(self, filepath):
+        """
+        Encodes a file path into a browser-friendly version (URL encoding).
+        Example: "my folder/video file.mp4" -> "my%20folder/video%20file.mp4"
+        """
+        return urllib.parse.quote(filepath)
+
     def connect(self):
         self.connection = psycopg2.connect(
             dbname=self.database,
@@ -123,6 +132,7 @@ class PostgresService:
         if not self.connection:
             self.connect()
         with self.connection.cursor() as cursor:
+            videopath_value = self.encode_filepath(videopath_value)
             cursor.execute(
                 f"""
                 INSERT INTO {self.VIDEO_TABLE_NAME} (videoId, videoPath, videoName, videoTag)
@@ -130,6 +140,36 @@ class PostgresService:
                 ON CONFLICT (videoId) DO NOTHING
             """,
                 (videoid_value, videopath_value, videoname_value, videotag_value),
+            )
+            self.connection.commit()
+
+    def add_heatmap_video_data(self, videoid_value, heatmapvideopath_value):
+        if not self.connection:
+            self.connect()
+        with self.connection.cursor() as cursor:
+            heatmapvideopath_value = self.encode_filepath(heatmapvideopath_value)
+            cursor.execute(
+                f"""
+                UPDATE {self.VIDEO_TABLE_NAME}
+                SET fullvideoHeatmapPath = %s
+                WHERE videoId = %s
+            """,
+                (heatmapvideopath_value, videoid_value),
+            )
+            self.connection.commit()
+    
+    def add_dotmatrix_video_data(self, videoid_value, dotmatrixvideopath_value):
+        if not self.connection:
+            self.connect()
+        with self.connection.cursor() as cursor:
+            dotmatrixvideopath_value = self.encode_filepath(dotmatrixvideopath_value)
+            cursor.execute(
+                f"""
+                UPDATE {self.VIDEO_TABLE_NAME}
+                SET videoDotMatrixSource = %s
+                WHERE videoId = %s
+            """,
+                (dotmatrixvideopath_value, videoid_value),
             )
             self.connection.commit()
 
@@ -141,7 +181,7 @@ class PostgresService:
                 f"""
                 SELECT *
                 FROM {self.table}
-                WHERE frameid = %s
+                WHERE frameId = %s
             """,
                 (frameid_value,),
             )
@@ -159,19 +199,33 @@ class PostgresService:
                 f"""
                 SELECT {column_name}
                 FROM {self.table}
-                WHERE frameid = %s
+                WHERE frameId = %s
             """,
                 (frameid_value,),
             )
             result = cursor.fetchone()
             return result is not None and result[0] is not None
 
+    def update_player_coordinates(self, videoid_value, both_player_coords_map):
+        if not self.connection:
+            self.connect()
+        with self.connection.cursor() as cursor:
+            for frameid_value, coordinatemap in both_player_coords_map.items():
+                print(f"Updating frameId {frameid_value} with coordinates {coordinatemap}")
+                for column, value in coordinatemap.items():
+                    cursor.execute(
+                        f"UPDATE {self.table} SET {column} = %s WHERE frameId = %s AND videoId = %s",
+                        (value, frameid_value, videoid_value),
+                    )
+            self.connection.commit()
+
+
     def set_column_value_by_frameid(self, column_name, value, frameid_value):
         if not self.connection:
             self.connect()
         with self.connection.cursor() as cursor:
             cursor.execute(
-                f"UPDATE {self.table} SET {column_name} = %s WHERE frameid = %s",
+                f"UPDATE {self.table} SET {column_name} = %s WHERE frameId = %s",
                 (value, frameid_value),
             )
             self.connection.commit()
