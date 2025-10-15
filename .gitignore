@@ -16,4 +16,5 @@ Datasets/OpenTT/game_1/Unconfirmed 614244.crdownload
 pw1
 .env
 **/__pycache__/
+*.pt
 outputs/
