@@ -45,7 +45,35 @@ INSERT INTO table_tennis_analysis (
 VALUES
     (1, 102, 'rally', 12.3, 8.5, 13.0, 8.6, 13.0, 9.0, 12.0, 9.0, 6.6, 7.1, 0.95, 'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F', 7.95, 2.15, 0.85, 7.95, 2.15, 0.85);
 
--- test commands for heatmap
+-- start test commands for tablevertexdetection
+
+INSERT INTO table_tennis_analysis (
+    videoId, frameId, frameAction, ballx, bally, ballz, depthMapPath
+)
+VALUES
+    (1, 101, 'serve', 6.5, 7.2, 0.9, 'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F');
+
+INSERT INTO table_tennis_analysis (
+    videoId, frameId, frameAction, ballx, bally, ballz, depthMapPath
+)
+VALUES
+    (1, 102, 'serve', 6.5, 7.2, 0.9, 'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F');
+
+INSERT INTO table_tennis_analysis (
+    videoId, frameId, frameAction, ballx, bally, ballz, depthMapPath
+)
+VALUES
+    (1, 103, 'serve', 6.5, 7.2, 0.9, 'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F');
+
+INSERT INTO table_tennis_analysis (
+    videoId, frameId, frameAction, ballx, bally, ballz, depthMapPath
+)
+VALUES
+    (1, 104, 'serve', 6.5, 7.2, 0.9, 'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F');
+
+-- end test comments for tablevertexdetection
+
+-- start test commands for heatmap
 
 INSERT INTO table_tennis_analysis (
     videoId, frameId, frameAction, tablex1, tabley1, tablex2, tabley2, tablex3, tabley3, tablex4, tabley4, ballx, bally, ballz, depthMapPath
@@ -71,9 +99,7 @@ INSERT INTO table_tennis_analysis (
 VALUES
     (1, 104, 'rally', 12.3, 8.5, 13.0, 8.6, 13.0, 9.0, 12.0, 9.0, 6.6, 7.1, 0.95, 'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F');
 
-
---
-
+-- end test comments for heatmap
 INSERT INTO table_tennis_analysis (
     videoId, frameId, frameAction, depthMapPath, player1x, player1y, player1z, player2x, player2y, player2z
 )
