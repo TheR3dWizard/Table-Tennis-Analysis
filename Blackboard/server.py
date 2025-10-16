@@ -28,11 +28,31 @@ consumer_column_queue_map = {
     "player2z":"player-heatmap-generation"
 }
 
+dynamic_consumer_column_queue_map = dict()
 
 @app.route("/")
 def home():
     return jsonify(message="Welcome to the Table Tennis Analysis Server!")
 
+
+@app.route("/consumer/join", methods=["POST"])
+def consumer_join():
+    data = request.json
+    if not data:
+        return jsonify(error="Missing JSON body"), 400
+
+    consumer_id = data.get("consumer_id")
+    consumer_queuename = data.get("consumer_queuename")
+    processable_columns = data.get("processable_columns", [])
+    if not consumer_id or not consumer_queuename or not processable_columns:
+        return jsonify(error="Missing 'consumer_id', 'consumer_queuename' or 'processable_columns'"), 400
+
+    for column in processable_columns:
+        dynamic_consumer_column_queue_map[column] = consumer_queuename
+    
+    # Process the consumer join request
+    # For example, add the consumer to a database or a list
+    return jsonify(message=f"Consumer {consumer_id} joined successfully"), 200
 
 @app.route("/checkandreturn", methods=["POST"])
 def check_and_return():
