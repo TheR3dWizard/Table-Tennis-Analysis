@@ -80,7 +80,7 @@ INSERT INTO table_tennis_analysis (
 VALUES
     (1, 16, 'forehand','https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F', 8.0, 2.2, 0.9, 7.95, 2.15, 0.85);
 
-DELETE FROM table_tennis_analysis where frameId=16;
+DELETE FROM table_tennis_analysis;
 
 SELECT * FROM table_tennis_analysis;
 
