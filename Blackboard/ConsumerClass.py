@@ -33,6 +33,17 @@ class Consumer:
         self.pgs.connect()
         # self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
+    def joinserver(self):
+        message = {
+            "consumer_id": self.id,
+            "consumer_queuename": self.queuename,
+            "processable_columns": self.processable_columns
+        }
+        print(f"{self.name} joining server with message: {message}")
+        response = requests.post(f"{self.server}/consumer/join", json=message)
+        print(f"Server response: {response.json()}")
+        return response.json()
+
     def threadstart(self):
         self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 

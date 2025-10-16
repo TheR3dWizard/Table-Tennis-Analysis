@@ -27,6 +27,15 @@ class PlayerHeatmapConsumer(Consumer):
         self.HEATMAP_TRACKER = "bytetrack.yaml"
         self.HEATMAP_OUTPUT_PATH = "/Users/akashshanmugaraj/Documents/Personal Projects/Table-Tennis-Analysis/outputs"
         self.HEATMAP_TRACKPOINT_THRESHOLD = 50
+        self.processable_columns = [
+            "player1x",
+            "player1y",
+            "player1z",
+            "player2x",
+            "player2y",
+            "player2z"
+        ]
+        self.joinserver()
     
     def saveresult(self, videoId, resultMap):
         print("Executing saveresult....")

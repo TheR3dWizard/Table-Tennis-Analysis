@@ -28,7 +28,17 @@ class TableVertexConsumer(Consumer):
         self.testframeid = 16
         self.TABLE_DETECTION_WEIGHTS_PATH = "../weights/TableDetection.pt"
         self.TABLE_DETECTION_DEFAULT_VIDEO = "/Users/akashshanmugaraj/Documents/Personal Projects/Table-Tennis-Analysis/assets/rallies_02.mp4"
-
+        self.processable_columns = [
+            "tablex1",
+            "tabley1",
+            "tablex2",
+            "tabley2",
+            "tablex3",
+            "tabley3",
+            "tablex4",
+            "tabley4",
+        ]
+        self.joinserver()
     
     def computerandomtablevertices(self):
         print("Executing computerandomtablevertices....")
