@@ -66,6 +66,7 @@ def update_column():
         if not data:
             return jsonify(error="Missing JSON body"), 400
 
+        videoid = data.get("videoid")
         frameid = data.get("frameid")
         column = data.get("column")
         value = data.get("value")
@@ -73,7 +74,7 @@ def update_column():
         if frameid is None or column is None or value is None:
             return jsonify(error="Missing 'frameid', 'column', or 'value'"), 400
 
-        updated = db.set_column_value_by_frameid(column, value, frameid)
+        updated = db.set_column_value_by_frameid(column, value, frameid, videoid)
         if not updated:
             return (
                 jsonify(error=f"Failed to update {column} for frameid {frameid}"),
