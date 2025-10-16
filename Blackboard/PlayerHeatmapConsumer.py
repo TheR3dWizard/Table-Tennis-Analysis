@@ -45,8 +45,10 @@ class PlayerHeatmapConsumer(Consumer):
 
     def logicfunction(self, messagebody):
         print(f"Processing message: {messagebody}")
+        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["targetid"]}).json().get("videoPath", self.HEATMAP_DEFAULT_VIDEO)
+        print(f"Video path retrieved: {videopath}")
         framedatamap, heatmapimagepath = analyze_video(
-            video=self.HEATMAP_DEFAULT_VIDEO,
+            video= videopath if videopath else self.HEATMAP_DEFAULT_VIDEO,
             start_frame=messagebody.get("startframeid", 0),
             end_frame=messagebody.get("endframeid", 1000),
             model=self.HEATMAP_MODEL_PATH,
@@ -60,23 +62,11 @@ class PlayerHeatmapConsumer(Consumer):
             min_track_points=self.HEATMAP_TRACKPOINT_THRESHOLD
         )
         
-        # Save results to the database
-        # TODO: Replace 1 with actual videoId from messagebody 
-        self.saveresult(1, framedatamap)
+        # Save results to the database 
+        self.saveresult(messagebody["videoid"], framedatamap)
         pprint.pprint(framedatamap)
         print(f"Heatmap image saved at: {heatmapimagepath}")
 
-        # TODO: Implement success notification
-        # Notify success
-        # self.placesuccess(
-        #     requestid=messagebody["requestid"],
-        #     requesterid=messagebody["requesterid"],
-        #     targetid=self.id,
-        #     requestorqueue=messagebody["returnqueue"],
-        #     returnmessageid=messagebody["returnmessageid"],
-        #     startframeid=messagebody.get("startframeid", None),
-        #     endframeid=messagebody.get("endframeid", None)
-        # )
         return True
 
 if __name__ == "__main__":

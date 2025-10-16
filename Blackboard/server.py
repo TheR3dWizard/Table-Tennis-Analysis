@@ -48,7 +48,7 @@ def check_and_return():
             return jsonify(error="Missing or invalid 'frameid' or 'columnlist'"), 400
 
         dbresult = db.get_columns_and_values_by_frameid(frameid)
-        pprint.pprint(f"Database result for frameid {frameid}: {dbresult}")
+        # pprint.pprint(f"Database result for frameid {frameid}: {dbresult}")
         if dbresult is None:
             return jsonify(error=f"No data found for frameid {frameid}"), 404
 
@@ -113,6 +113,57 @@ def placerequest():
         )
     mqtt.publish(str(message), targetqueue.pop())
     return {"message":"placed message", "status":200}
+
+@app.route("/clearqueues", methods=["POST"])
+def clear_queues():
+    try:
+        # Get all unique queue names from the consumer_column_queue_map
+        queues = set(consumer_column_queue_map.values())
+        
+        cleared_queues = []
+        failed_queues = []
+        
+        for queue in queues:
+            try:
+                mqtt.clear_queue(queue)
+                cleared_queues.append(queue)
+            except Exception as queue_error:
+                # Queue might not exist or other error
+                failed_queues.append({
+                    "queue": queue,
+                    "error": str(queue_error)
+                })
+        
+        if failed_queues and not cleared_queues:
+            return jsonify(
+                message="Failed to clear any queues",
+                failed_queues=failed_queues
+            ), 404
+        
+        response = {
+            "message": "Queue clearing completed",
+            "cleared_queues": cleared_queues
+        }
+        
+        if failed_queues:
+            response["failed_queues"] = failed_queues
+            response["message"] = "Partially cleared queues"
+        
+        return jsonify(response), 200
+    except Exception as e:
+        return jsonify(error=f"Failed to clear queues: {str(e)}"), 500
+
+@app.route("/get-video-path-against-id", methods=["GET"])
+def get_video_path_against_id():
+    video_id = request.args.get("videoid")
+    if not video_id:
+        return jsonify(error="Missing 'videoid'"), 400
+
+    video_path = db.get_video_path_by_videoid(video_id)
+    if not video_path:
+        return jsonify(error=f"Video path not found for videoid {video_id}"), 404
+
+    return jsonify(videoPath=video_path)
 
 if __name__ == "__main__":
     app.run(debug=True, port=6060, host="0.0.0.0")

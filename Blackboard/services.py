@@ -211,7 +211,6 @@ class PostgresService:
             self.connect()
         with self.connection.cursor() as cursor:
             for frameid_value, coordinatemap in both_player_coords_map.items():
-                print(f"Updating frameId {frameid_value} with coordinates {coordinatemap}")
                 for column, value in coordinatemap.items():
                     cursor.execute(
                         f"UPDATE {self.table} SET {column} = %s WHERE frameId = %s AND videoId = %s",
