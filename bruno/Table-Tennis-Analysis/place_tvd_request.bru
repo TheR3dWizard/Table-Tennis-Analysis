@@ -1,5 +1,5 @@
 meta {
-  name: Place Request
+  name: Place TVD Request
   type: http
   seq: 1
 }
@@ -16,12 +16,16 @@ body:json {
     "requestid":"bruno-request-100",
     "requesterid": "bruno-api-client",
     "returnqueue": "default",
-    "targetid": "player-heatmap-consumer",
+    "targetid": "table-vertex-detection",
     "columnslist": [
-      "player1x",
-      "player1y",
-      "player2x",
-      "player2y"
+      "tablex1",
+      "tabley1",
+      "tablex2",
+      "tabley2",
+      "tablex3",
+      "tabley3",
+      "tablex4",
+      "tabley4"
     ],
     "returnmessageid": "bruno-test-message-100",
     "startframeid": 101,
