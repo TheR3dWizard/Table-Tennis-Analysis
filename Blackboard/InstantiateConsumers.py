@@ -1,5 +1,6 @@
 from TableVertexConsumer import TableVertexConsumer
 from BallPositionConsumer import BallPositionConsumer
+from PlayerHeatmapConsumer import PlayerHeatmapConsumer
 
 import threading
 import random
@@ -16,6 +17,7 @@ def run_consumer(consumer):
 
 c1 = TableVertexConsumer(rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword")
 c2 = BallPositionConsumer(rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword")
+c3 = PlayerHeatmapConsumer(rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword")
 # c3 = Consumer("Player Heatmap", rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword", logicfunction=computerandomplayercoordinates)
 # c4 = Consumer("Trajectory Analysis", rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword")
 

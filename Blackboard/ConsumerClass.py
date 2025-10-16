@@ -33,10 +33,21 @@ class Consumer:
         self.pgs.connect()
         # self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
+    def joinserver(self):
+        message = {
+            "consumer_id": self.id,
+            "consumer_queuename": self.queuename,
+            "processable_columns": self.processable_columns
+        }
+        print(f"{self.name} joining server with message: {message}")
+        response = requests.post(f"{self.server}/consumer/join", json=message)
+        print(f"Server response: {response.json()}")
+        return response.json()
+
     def threadstart(self):
         self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
-    def placerequest(self, columnslist, targetid, returnmessageid):
+    def placerequest(self, columnslist, targetid, returnmessageid, startframeid=None, endframeid=None):
         message = {
             "type": "request",
             "requestid": str(uuid.uuid4()),
@@ -44,7 +55,9 @@ class Consumer:
             "returnqueue": self.queuename,
             "targetid": targetid,
             "columnslist": columnslist,
-            "returnmessageid": returnmessageid
+            "returnmessageid": returnmessageid,
+            "startframeid": startframeid,
+            "endframeid": endframeid
         }
         print(f"Placing request... for {columnslist} to {targetid}")
         # [ABSTRACTED] self.rabbitmqservice.publish(str(message), queue=targetqueue)
@@ -52,7 +65,7 @@ class Consumer:
 
         return response.json()
 
-    def placesuccess(self, requestid, requesterid, targetid, requestorqueue, returnmessageid):
+    def placesuccess(self, requestid, requesterid, targetid, requestorqueue, returnmessageid, startframeid, endframeid):
         print(f"Placing success message... from {self.queuename} to {requestorqueue}")
         message = {
             "type": "success",
@@ -60,7 +73,9 @@ class Consumer:
             "requesterid": requesterid,
             "targetid": targetid,
             "returnqueue": requestorqueue,
-            "returnmessageid": returnmessageid
+            "returnmessageid": returnmessageid,
+            "startframeid": startframeid,
+            "endframeid": endframeid
         }
         self.rabbitmqservice.publish(str(message), queue=requestorqueue)
 
@@ -83,7 +98,9 @@ class Consumer:
                     body["requesterid"],
                     body["targetid"],
                     body["returnqueue"],
-                    body["returnmessageid"]
+                    body["returnmessageid"],
+                    body.get("startframeid", None),
+                    body.get("endframeid", None)
                 )
             else:
                 print("Logic execution failed or pending, not sending success message.")

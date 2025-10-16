@@ -21,6 +21,12 @@ class BallPositionConsumer(Consumer):
         )
         self.logic = self.logicfunction
         self.testframeid = 16
+        self.processable_columns = [
+            "ballx",
+            "bally",
+            "ballz",
+        ]
+        self.joinserver()
     
     def computerandomballcoordinates(self):
         print("Executing computerandomballcoordinates....")

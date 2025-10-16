@@ -5,6 +5,7 @@
 *.png
 *.jpeg
 *.webp
+*.npy
 *.json
 *.mp4
 Datasets/Dataset/game1/Clip1/0000.jpg
@@ -16,3 +17,5 @@ pw1
 .env
 **/__pycache__/
 *.pt
+outputs/
+.idea/
