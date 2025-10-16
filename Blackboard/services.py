@@ -220,14 +220,14 @@ class PostgresService:
 
 
     def set_column_value_by_frameid(self, column_name, value, frameid_value, videoid_value):
-        if not self.connection:
-            self.connect()
-        with self.connection.cursor() as cursor:
-            cursor.execute(
-                f"UPDATE {self.table} SET {column_name} = %s WHERE frameId = %s AND videoId = %s",
-                (value, frameid_value, videoid_value),
-            )
-            self.connection.commit()
+            if not self.connection:
+                self.connect()
+            with self.connection.cursor() as cursor:
+                command = f"UPDATE {self.table} SET {column_name} = %s WHERE frameId = %s AND videoId = %s"
+                cursor.execute(command, (value, frameid_value, videoid_value))
+                self.connection.commit()
+                # Return the number of rows affected
+                return cursor.rowcount > 0
 
     def close(self):
         if self.connection:
