@@ -8,6 +8,9 @@
 *.npy
 *.json
 *.mp4
+*.yaml
+*.cache
+*.csv
 *.txt
 Datasets/Dataset/game1/Clip1/0000.jpg
 Datasets/Dataset/game1/Clip10/Label.csv
