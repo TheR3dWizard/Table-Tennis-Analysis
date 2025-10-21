@@ -388,7 +388,7 @@ def process_segment_trajectory(json_filename, start_frame, end_frame, segment_la
         traceback.print_exc()
         return None
 
-def overlay_trajectory_on_video_segment(video_path, output_path, smoothed_positions, start_frame, end_frame, table_coords=None):
+def overlay_trajectory_on_video_segment(video_path, output_path, smoothed_positions, start_frame, end_frame, table_coords=None,live=True):
     """
     Overlays a smoothed trajectory path onto a specific video segment.
     """
@@ -428,8 +428,13 @@ def overlay_trajectory_on_video_segment(video_path, output_path, smoothed_positi
         print(f"Processing frame {frame_count} (index {current_data_idx})")
         
         # Draw only the smoothed trajectory as a curve (red) and current ball position (green)
-        cv2.polylines(frame, [points], isClosed=False, color=(0, 0, 255), thickness=3)
-        print("Drew full trajectory path as curve")
+        if not live:
+            cv2.polylines(frame, [points], isClosed=False, color=(0, 0, 255), thickness=3)
+            print("Drew full trajectory path as curve")
+        else:
+            if current_data_idx > 0:
+                cv2.polylines(frame, [points[:current_data_idx+1]], isClosed=False, color=(0, 0, 255), thickness=3)
+                print("Drew trajectory path up to current frame")
 
         if current_data_idx < len(smoothed_positions):
             current_pos = tuple(smoothed_positions[current_data_idx].astype(int))
@@ -453,12 +458,12 @@ def main():
     
     print("Starting main execution")
     
-    json_filename = "ball_trajectory_v1_offset.json"
-    input_video_file = "v1.mp4"
+    json_filename = "ball_positions.json"
+    input_video_file = "../Videos/game_5.mp4"
     start_frame = 0
-    end_frame = 327
+    end_frame = 4999
     segment_label = "s1"
-    output_video_file = "output_v1_offset.mp4"
+    output_video_file = "output_game_5.mp4"
     # Table coordinates removed
     
     print(f"Input JSON: {json_filename}")
@@ -495,6 +500,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 def detect_bounce_points(smoothed_positions, table_coords, proximity_threshold=15, min_velocity_change=0.5):
     """
