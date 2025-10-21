@@ -179,8 +179,8 @@ def correct_bounces_with_table(smoothed_positions, table_coords):
     print("Correcting trajectory for pitches and bounces using table coordinates...")
     corrected_positions = smoothed_positions.copy()
     
-    top_y = table_coords[1]
-    bottom_y = table_coords[3]
+    top_y = table_coords[0][1]
+    bottom_y = table_coords[1][1]
     print(f"Table coordinates: top_y={top_y}, bottom_y={bottom_y}")
     
     if len(corrected_positions) < 3:
@@ -465,7 +465,8 @@ def main():
     segment_label = "s1"
     output_video_file = "output_game_5.mp4"
     # Table coordinates removed
-    
+    table_coords = [[453.87,572.61],[1487.3,572.61],[1487.3,785.4],[453.87,785.4]]
+ 
     print(f"Input JSON: {json_filename}")
     print(f"Input video: {input_video_file}")
     print(f"Processing segment {segment_label}: frames {start_frame} to {end_frame}")
@@ -477,6 +478,7 @@ def main():
         end_frame=end_frame,
         segment_label=segment_label,
     # table_coords argument removed
+        table_coords=table_coords,
         save_plot=True,
         show_analysis=True
     )
@@ -491,7 +493,8 @@ def main():
             output_path=output_video_file,
             smoothed_positions=smoothed_positions,
             start_frame=start_frame,
-            end_frame=end_frame
+            end_frame=end_frame,
+            table_coords=table_coords,
         )
     else:
         print("Trajectory analysis failed. Cannot create video overlay.")
