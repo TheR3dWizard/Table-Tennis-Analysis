@@ -1,7 +1,7 @@
 import urllib.parse
 import psycopg2
 import pika
-
+from constants import Constants
 
 class RabbitMQService:
     def __init__(self, username, password, host=None, port=None, queue=None):
@@ -240,5 +240,5 @@ if __name__ == "__main__":
     # rmqs.publish('Hello RabbitMQ!', queue='test2queue')
     # print(rmqs.getlastmessage(queue='testqueue'))
 
-    db = PostgresService("pw1tt", "securepostgrespassword")
+    db = PostgresService(Constants.POSTGRES_USERNAME, Constants.POSTGRES_PASSWORD)
     print(db.get_columns_and_values_by_frameid(16))

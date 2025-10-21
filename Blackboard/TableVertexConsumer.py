@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 import pprint
+from constants import Constants
 
 class TableVertexConsumer(Consumer):
     def __init__(
@@ -214,5 +215,5 @@ class TableVertexConsumer(Consumer):
 
 
 if __name__ == "__main__":
-    c1 = TableVertexConsumer(rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword", id="table-vertex-detection-consumer")
+    c1 = TableVertexConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="table-vertex-detection-consumer")
     c1.threadstart()

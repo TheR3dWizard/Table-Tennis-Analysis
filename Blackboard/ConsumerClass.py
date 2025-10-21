@@ -3,6 +3,7 @@ import uuid
 import requests
 import time
 import pprint
+from constants import Constants
 
 class Consumer:
     def __init__(
@@ -10,9 +11,9 @@ class Consumer:
         name,
         id=None,
         queuename=None,
-        rabbitmqusername="default",
-        rabbitmqpassword="default",
-        serverurl="http://localhost:6060",
+        rabbitmqusername=Constants.RABBITMQ_USERNAME,
+        rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+        serverurl=Constants.DEFAULT_SERVER_URL,
     ):
         self.name = name
         self.id = id or str(uuid.uuid4())
@@ -29,7 +30,7 @@ class Consumer:
         )
         self.server = serverurl
         self.hashmap = {}
-        self.pgs = PostgresService(username="pw1tt", password="securepostgrespassword")
+        self.pgs = PostgresService(username=Constants.POSTGRES_USERNAME, password=Constants.POSTGRES_PASSWORD)
         self.pgs.connect()
         # self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 

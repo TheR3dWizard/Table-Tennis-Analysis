@@ -2,6 +2,7 @@ from ConsumerClass import Consumer
 import requests
 from tt_pose_heatmap import analyze_video
 import pprint
+from constants import Constants
 
 class PlayerHeatmapConsumer(Consumer):
     def __init__(
@@ -9,9 +10,9 @@ class PlayerHeatmapConsumer(Consumer):
         name="Player Heatmap Generation",
         id=None,
         queuename=None,
-        rabbitmqusername="default",
-        rabbitmqpassword="default",
-        serverurl="http://localhost:6060",
+        rabbitmqusername=Constants.RABBITMQ_USERNAME,
+        rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+        serverurl=Constants.DEFAULT_SERVER_URL,
     ):
         super().__init__(
             name,
@@ -54,19 +55,19 @@ class PlayerHeatmapConsumer(Consumer):
 
     def logicfunction(self, messagebody):
         print(f"Processing message: {messagebody}")
-        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["targetid"]}).json().get("videoPath", self.HEATMAP_DEFAULT_VIDEO)
+        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["targetid"]}).json().get("videoPath", Constants.DEFAULT_VIDEO_PATH)
         print(f"Video path retrieved: {videopath}")
         framedatamap, heatmapimagepath = analyze_video(
-            video= videopath if videopath else self.HEATMAP_DEFAULT_VIDEO,
+            video= videopath if videopath else Constants.HEATMAP_DEFAULT_VIDEO,
             start_frame=messagebody.get("startframeid", 0),
             end_frame=messagebody.get("endframeid", 1000),
-            model=self.HEATMAP_MODEL_PATH,
+            model=Constants.HEATMAP_MODEL_PATH,
             tracker=self.HEATMAP_TRACKER,
             confidence=0.3,
             device="cpu",
             point_radius=6,
             sigma=8.0,
-            out_dir=self.HEATMAP_OUTPUT_PATH,
+            out_dir=Constants.DEFAULT_OUTPUT_FOLDER_PATH,
             num_players=2,
             min_track_points=self.HEATMAP_TRACKPOINT_THRESHOLD
         )
@@ -79,5 +80,5 @@ class PlayerHeatmapConsumer(Consumer):
         return True
 
 if __name__ == "__main__":
-    c1 = PlayerHeatmapConsumer(rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword", id="player-heatmap-consumer")
+    c1 = PlayerHeatmapConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="player-heatmap-consumer")
     c1.threadstart()

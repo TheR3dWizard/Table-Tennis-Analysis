@@ -2,10 +2,11 @@ from flask import Flask, jsonify, request
 from services import RabbitMQService, PostgresService
 from typing import Set
 import pprint
+from constants import Constants
 
 app = Flask(__name__)
-db = PostgresService(username="pw1tt", password="securepostgrespassword")
-mqtt = RabbitMQService(username="pw1tt", password="securerabbitmqpassword")
+db = PostgresService(username=Constants.POSTGRES_USERNAME, password=Constants.POSTGRES_PASSWORD)
+mqtt = RabbitMQService(username=Constants.RABBITMQ_USERNAME, password=Constants.RABBITMQ_PASSWORD)
 mqtt.connect()
 
 consumer_column_queue_map = {
