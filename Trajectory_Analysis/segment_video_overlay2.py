@@ -598,7 +598,7 @@ def analyze_interpolation_error(interpolated_positions, smoothed_positions, segm
         print("Creating interpolation error visualization...")
         plt.figure(figsize=(10, 6))
         plt.plot(segment_frames[valid_indices], errors, 'bo-', label='Interpolation Error')
-        plt.axhline(results['avg_error'], color='r', linestyle='--', label=f'Avg Error ({results['avg_error']:.2f} px)')
+        plt.axhline(results['avg_error'], color='r', linestyle='--', label=f"Avg Error ({results['avg_error']:.2f} px)'")
         plt.xlabel('Frame Number')
         plt.ylabel('Euclidean Distance (pixels)')
         plt.title(f'Interpolation Error - Segment {segment_label}')
