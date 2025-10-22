@@ -1,5 +1,6 @@
 from ConsumerClass import Consumer
 import random
+from constants import Constants
 
 class BallPositionConsumer(Consumer):
     def __init__(
@@ -21,6 +22,12 @@ class BallPositionConsumer(Consumer):
         )
         self.logic = self.logicfunction
         self.testframeid = 16
+        self.processable_columns = [
+            "ballx",
+            "bally",
+            "ballz",
+        ]
+        self.joinserver()
     
     def computerandomballcoordinates(self):
         print("Executing computerandomballcoordinates....")
@@ -48,5 +55,5 @@ class BallPositionConsumer(Consumer):
         return True
     
 if __name__ == "__main__":
-    c1 = BallPositionConsumer(rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword", id="ball-position-detection-consumer")
+    c1 = BallPositionConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="ball-position-detection-consumer")
     c1.threadstart()
