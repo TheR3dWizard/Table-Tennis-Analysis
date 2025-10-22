@@ -65,6 +65,12 @@ class SpacePointSearch(Consumer):
         # In a real scenario, this would involve image processing to determine the Z coordinate
         return random.uniform(0, 100)  # Return a random Z value for demonstration
 
+    def annotate_coordinates_on_image_and_save(self, image_path, coordinates):
+        # Dummy implementation for annotating coordinates on an image
+        # In a real scenario, this would involve using OpenCV or similar to draw on the image
+        annotated_image_path = "/path/to/annotated/image.jpg"  # Placeholder path
+        return (True, annotated_image_path)
+
     def logicfunction(self, messagebody):
         videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["videoid"]}).json().get("videoPath", Constants.DEFAULT_VIDEO_PATH)
         startframeid = messagebody.get("startframeid", 0)
