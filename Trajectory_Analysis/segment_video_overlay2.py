@@ -179,8 +179,8 @@ def correct_bounces_with_table(smoothed_positions, table_coords):
     print("Correcting trajectory for pitches and bounces using table coordinates...")
     corrected_positions = smoothed_positions.copy()
     
-    top_y = table_coords[1]
-    bottom_y = table_coords[3]
+    top_y = table_coords[0][1]
+    bottom_y = table_coords[1][1]
     print(f"Table coordinates: top_y={top_y}, bottom_y={bottom_y}")
     
     if len(corrected_positions) < 3:
@@ -388,7 +388,7 @@ def process_segment_trajectory(json_filename, start_frame, end_frame, segment_la
         traceback.print_exc()
         return None
 
-def overlay_trajectory_on_video_segment(video_path, output_path, smoothed_positions, start_frame, end_frame, table_coords=None):
+def overlay_trajectory_on_video_segment(video_path, output_path, smoothed_positions, start_frame, end_frame, table_coords=None,live=True):
     """
     Overlays a smoothed trajectory path onto a specific video segment.
     """
@@ -428,8 +428,13 @@ def overlay_trajectory_on_video_segment(video_path, output_path, smoothed_positi
         print(f"Processing frame {frame_count} (index {current_data_idx})")
         
         # Draw only the smoothed trajectory as a curve (red) and current ball position (green)
-        cv2.polylines(frame, [points], isClosed=False, color=(0, 0, 255), thickness=3)
-        print("Drew full trajectory path as curve")
+        if not live:
+            cv2.polylines(frame, [points], isClosed=False, color=(0, 0, 255), thickness=3)
+            print("Drew full trajectory path as curve")
+        else:
+            if current_data_idx > 0:
+                cv2.polylines(frame, [points[:current_data_idx+1]], isClosed=False, color=(0, 0, 255), thickness=3)
+                print("Drew trajectory path up to current frame")
 
         if current_data_idx < len(smoothed_positions):
             current_pos = tuple(smoothed_positions[current_data_idx].astype(int))
@@ -453,14 +458,15 @@ def main():
     
     print("Starting main execution")
     
-    json_filename = "ball_trajectory_v1_offset.json"
-    input_video_file = "v1.mp4"
+    json_filename = "ball_positions.json"
+    input_video_file = "../Videos/game_5.mp4"
     start_frame = 0
-    end_frame = 327
+    end_frame = 4999
     segment_label = "s1"
-    output_video_file = "output_v1_offset.mp4"
+    output_video_file = "output_game_5.mp4"
     # Table coordinates removed
-    
+    table_coords = [[453.87,572.61],[1487.3,572.61],[1487.3,785.4],[453.87,785.4]]
+ 
     print(f"Input JSON: {json_filename}")
     print(f"Input video: {input_video_file}")
     print(f"Processing segment {segment_label}: frames {start_frame} to {end_frame}")
@@ -472,6 +478,7 @@ def main():
         end_frame=end_frame,
         segment_label=segment_label,
     # table_coords argument removed
+        table_coords=table_coords,
         save_plot=True,
         show_analysis=True
     )
@@ -486,7 +493,8 @@ def main():
             output_path=output_video_file,
             smoothed_positions=smoothed_positions,
             start_frame=start_frame,
-            end_frame=end_frame
+            end_frame=end_frame,
+            table_coords=table_coords,
         )
     else:
         print("Trajectory analysis failed. Cannot create video overlay.")
@@ -495,6 +503,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 def detect_bounce_points(smoothed_positions, table_coords, proximity_threshold=15, min_velocity_change=0.5):
     """
@@ -598,7 +607,7 @@ def analyze_interpolation_error(interpolated_positions, smoothed_positions, segm
         print("Creating interpolation error visualization...")
         plt.figure(figsize=(10, 6))
         plt.plot(segment_frames[valid_indices], errors, 'bo-', label='Interpolation Error')
-        plt.axhline(results['avg_error'], color='r', linestyle='--', label=f'Avg Error ({results['avg_error']:.2f} px)')
+        plt.axhline(results['avg_error'], color='r', linestyle='--', label=f"Avg Error ({results['avg_error']:.2f} px)'")
         plt.xlabel('Frame Number')
         plt.ylabel('Euclidean Distance (pixels)')
         plt.title(f'Interpolation Error - Segment {segment_label}')
