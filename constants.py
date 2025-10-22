@@ -7,3 +7,17 @@ class Constants:
     HOUGH_MIN_LINE_LENGTH = 200
     HOUGH_MAX_LINE_GAP = 1
     OUTPUT_IMAGE_PATH = 'assets/results/image.jpeg'
+    TABLE_VERTEX_DETECTION_WEIGHTS = 'weights/TableDetection.pt'
+    BALL_POSITION_DETECTION_WEIGHTS = 'weights/BallDetection.pt'
+    DEFAULT_VIDEO_PATH = 'assets/rallies_02.mp4'
+    DEFAULT_OUTPUT_FOLDER_PATH = 'assets/output/'
+    DEFAULT_SERVER_URL = 'http://localhost:6060'
+    RABBITMQ_USERNAME = 'pw1tt'
+    RABBITMQ_PASSWORD = 'securerabbitmqpassword'
+    RABBITMQ_HOST = 'localhost'
+    RABBITMQ_PORT = 5672
+    POSTGRES_USERNAME = 'pw1tt'
+    POSTGRES_PASSWORD = 'securepostgrespassword'
+    POSTGRES_DBNAME = 'blackboard'
+    POSTGRES_HOST = 'localhost'
+    POSTGRES_PORT = 5432
