@@ -1,6 +1,9 @@
 from ConsumerClass import Consumer
 import random
 from constants import Constants
+from ultralytics import YOLO
+import cv2
+import torch
 
 class BallPositionConsumer(Consumer):
     def __init__(
@@ -38,6 +41,15 @@ class BallPositionConsumer(Consumer):
             "bally": y,
             "ballz": z,
         }
+    
+    def run_yolo_model_on_image(image_path, model_path=Constants.YOLOV8N_WEIGHTS_PATH):
+        model = YOLO(model_path)
+        
+        img = cv2.imread(image_path)
+        
+        results = model(img)
+        
+        return results
 
     def logicfunction(self, messagebody):
         boardresponse = self.check(self.testframeid, ["tablex1", "tabley1", "tablex2", "tabley2", "tablex3", "tabley3", "tablex4", "tabley4"])

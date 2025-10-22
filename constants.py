@@ -21,3 +21,5 @@ class Constants:
     POSTGRES_DBNAME = 'blackboard'
     POSTGRES_HOST = 'localhost'
     POSTGRES_PORT = 5432
+    YOLOV8N_WEIGHTS_PATH = 'weights/yolov8n.pt'
+    YOLO11N_POSE_WEIGHTS_PATH = 'weights/yolov11n-pose.pt'

@@ -1,10 +1,11 @@
 from tt_pose_heatmap import analyze_video
+from constants import Constants
 
 frame_map, overlay_path = analyze_video(
     video="assets/rallies_02.mp4",
     start_frame=0,
     end_frame=2000,  # -1 to go till end
-    model="yolo11n-pose.pt",
+    model=Constants.YOLO11N_POSE_WEIGHTS_PATH,
     tracker="bytetrack.yaml",
     confidence=0.3,
     device="cpu",  # or "cpu" or "0"
