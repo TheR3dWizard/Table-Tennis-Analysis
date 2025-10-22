@@ -11,6 +11,7 @@ class Constants:
     BALL_POSITION_DETECTION_WEIGHTS = '../weights/BallDetection.pt'
     DEFAULT_VIDEO_PATH = '../assets/rallies_02.mp4'
     DEFAULT_OUTPUT_FOLDER_PATH = '../assets/output/'
+    DEFAULT_FILE_SAVE_PATH = '../storage/'
     DEFAULT_SERVER_URL = 'http://localhost:6060'
     RABBITMQ_USERNAME = 'pw1tt'
     RABBITMQ_PASSWORD = 'securerabbitmqpassword'
