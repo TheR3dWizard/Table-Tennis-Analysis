@@ -73,6 +73,7 @@ class Consumer:
             "requesterid": requesterid,
             "returnqueue": requestorqueue,
             "returnmessageid": returnmessageid,
+            "mudithavar": self.id,
             "startframeid": startframeid,
             "endframeid": endframeid
         }
@@ -109,6 +110,7 @@ class Consumer:
             print("\n\n")
             if body["returnmessageid"] in self.hashmap:
                 messagebody = self.hashmap.pop(body["returnmessageid"])
+                messagebody["successmessage"] = True
                 self.logic(messagebody)
             else:
                 print("Request ID not found in hashmap. Ignoring success message.")
