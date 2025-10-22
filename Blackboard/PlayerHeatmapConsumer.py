@@ -24,7 +24,6 @@ class PlayerHeatmapConsumer(Consumer):
         )
         self.logic = self.logicfunction
         self.HEATMAP_DEFAULT_VIDEO = "/Users/akashshanmugaraj/Documents/Personal Projects/Table-Tennis-Analysis/assets/rallies_02.mp4"
-        self.HEATMAP_MODEL_PATH = "/Users/akashshanmugaraj/Documents/Personal Projects/Table-Tennis-Analysis/yolo11n-pose.pt"
         self.HEATMAP_TRACKER = "bytetrack.yaml"
         self.HEATMAP_OUTPUT_PATH = "/Users/akashshanmugaraj/Documents/Personal Projects/Table-Tennis-Analysis/outputs"
         self.HEATMAP_TRACKPOINT_THRESHOLD = 50
@@ -55,13 +54,13 @@ class PlayerHeatmapConsumer(Consumer):
 
     def logicfunction(self, messagebody):
         print(f"Processing message: {messagebody}")
-        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["targetid"]}).json().get("videoPath", Constants.DEFAULT_VIDEO_PATH)
+        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["videoid"]}).json().get("videoPath", Constants.DEFAULT_VIDEO_PATH)
         print(f"Video path retrieved: {videopath}")
         framedatamap, heatmapimagepath = analyze_video(
             video= videopath if videopath else Constants.HEATMAP_DEFAULT_VIDEO,
             start_frame=messagebody.get("startframeid", 0),
             end_frame=messagebody.get("endframeid", 1000),
-            model=Constants.HEATMAP_MODEL_PATH,
+            model=Constants.YOLO11N_POSE_WEIGHTS_PATH,
             tracker=self.HEATMAP_TRACKER,
             confidence=0.3,
             device="cpu",

@@ -186,7 +186,7 @@ class TableVertexConsumer(Consumer):
                     print(f"Failed to update frame {frameid}, column {column}: {response.json()}")
     
     def logicfunction(self, messagebody):
-        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["targetid"]}).json().get("videoPath", self.TABLE_DETECTION_DEFAULT_VIDEO)
+        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["videoid"]}).json().get("videoPath", self.TABLE_DETECTION_DEFAULT_VIDEO)
         model = YOLO(self.TABLE_DETECTION_WEIGHTS_PATH)
         startframeid = messagebody.get("startframeid", 0)
         endframeid = messagebody.get("endframeid", 1000)

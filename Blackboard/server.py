@@ -64,11 +64,12 @@ def check_and_return():
 
         frameid = data.get("frameid")
         columnlist = data.get("columns", [])
+        videoid = data.get("videoid")
         pprint.pprint(f"Received check_and_return request for frameid {frameid} and columns {columnlist}")
         if frameid is None or not isinstance(columnlist, list):
             return jsonify(error="Missing or invalid 'frameid' or 'columnlist'"), 400
 
-        dbresult = db.get_columns_and_values_by_frameid(frameid)
+        dbresult = db.get_columns_and_values_by_frameid(frameid, videoid)
         # pprint.pprint(f"Database result for frameid {frameid}: {dbresult}")
         if dbresult is None:
             return jsonify(error=f"No data found for frameid {frameid}"), 404

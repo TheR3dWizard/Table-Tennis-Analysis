@@ -6,11 +6,11 @@ class Constants:
     HOUGH_THRESHOLD = 80
     HOUGH_MIN_LINE_LENGTH = 200
     HOUGH_MAX_LINE_GAP = 1
-    OUTPUT_IMAGE_PATH = 'assets/results/image.jpeg'
-    TABLE_VERTEX_DETECTION_WEIGHTS = 'weights/TableDetection.pt'
-    BALL_POSITION_DETECTION_WEIGHTS = 'weights/BallDetection.pt'
-    DEFAULT_VIDEO_PATH = 'assets/rallies_02.mp4'
-    DEFAULT_OUTPUT_FOLDER_PATH = 'assets/output/'
+    OUTPUT_IMAGE_PATH = '../assets/results/image.jpeg'
+    TABLE_VERTEX_DETECTION_WEIGHTS = '../weights/TableDetection.pt'
+    BALL_POSITION_DETECTION_WEIGHTS = '../weights/BallDetection.pt'
+    DEFAULT_VIDEO_PATH = '../assets/rallies_02.mp4'
+    DEFAULT_OUTPUT_FOLDER_PATH = '../assets/output/'
     DEFAULT_SERVER_URL = 'http://localhost:6060'
     RABBITMQ_USERNAME = 'pw1tt'
     RABBITMQ_PASSWORD = 'securerabbitmqpassword'
@@ -21,5 +21,5 @@ class Constants:
     POSTGRES_DBNAME = 'blackboard'
     POSTGRES_HOST = 'localhost'
     POSTGRES_PORT = 5432
-    YOLOV8N_WEIGHTS_PATH = 'weights/yolov8n.pt'
-    YOLO11N_POSE_WEIGHTS_PATH = 'weights/yolov11n-pose.pt'
+    YOLOV8N_WEIGHTS_PATH = '../weights/yolov8n.pt'
+    YOLO11N_POSE_WEIGHTS_PATH = '../weights/yolov11n-pose.pt'
