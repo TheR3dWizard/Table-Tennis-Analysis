@@ -3,6 +3,9 @@ from services import RabbitMQService, PostgresService
 from typing import Set
 import pprint
 from constants import Constants
+from werkzeug.utils import secure_filename
+import os
+from datetime import datetime
 
 app = Flask(__name__)
 db = PostgresService(username=Constants.POSTGRES_USERNAME, password=Constants.POSTGRES_PASSWORD)
@@ -18,8 +21,8 @@ consumer_column_queue_map = {
     "tabley3" : "table-vertex-detection", 
     "tablex4" : "table-vertex-detection", 
     "tabley4" : "table-vertex-detection",
-    "ballx":"ball-position-detection",
-    "bally":"ball-position-detection",
+    "ballx":"ball-2d-position-detection",
+    "bally":"ball-2d-position-detection",
     "ballz":"depth-map-estimator",
     "player1x":"player-heatmap-generation",
     "player1y":"player-heatmap-generation",
@@ -187,6 +190,28 @@ def get_video_path_against_id():
         return jsonify(error=f"Video path not found for videoid {video_id}"), 404
 
     return jsonify(videoPath=video_path)
+
+@app.route("/upload-video", methods=["POST"])
+def upload_video():
+    uploaded_file = request.files.get("file")
+    if not uploaded_file:
+        return jsonify(error="Missing 'file' in form-data"), 400
+
+    filename_from_body = request.form.get("filename") or request.args.get("filename") or uploaded_file.filename
+    if not filename_from_body:
+        return jsonify(error="Missing 'filename' in form-data or query string"), 400
+    
+    base_name = secure_filename(os.path.splitext(filename_from_body)[0])
+    ext = os.path.splitext(uploaded_file.filename)[1] or ""
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    final_filename = f"{base_name}_{timestamp}{ext}"
+
+    save_dir = os.path.join(Constants.DEFAULT_FILE_SAVE_PATH)
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, final_filename)
+
+    uploaded_file.save(save_path)
+    return jsonify(message="Video uploaded successfully", filename=final_filename, path=save_path), 201
 
 if __name__ == "__main__":
     app.run(debug=True, port=6060, host="0.0.0.0")
