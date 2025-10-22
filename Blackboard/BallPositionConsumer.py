@@ -96,7 +96,7 @@ class Ball2DPositionConsumer(Consumer):
         videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["videoid"]}).json().get("videoPath", Constants.DEFAULT_VIDEO_PATH)
         startframeid = messagebody.get("startframeid", 0)
         endframeid = messagebody.get("endframeid", 1000)
-        ball_markup,json_output = self.run_yolo_on_video(Constants.BALL_POSITION_DETECTION_WEIGHTS, videopath, startframeid, endframeid, conf=0.25) # TODO: write fetch function for ball coordinates, traj-ana module friendly
+        ball_markup,json_output = self.run_yolo_on_video(Constants.BALL_POSITION_DETECTION_WEIGHTS, videopath, startframeid, endframeid, conf=0.25)
 
         pprint.pprint(json_output)
 
