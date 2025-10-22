@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 import pprint
+from constants import Constants
 
 class TableVertexConsumer(Consumer):
     def __init__(
@@ -185,7 +186,7 @@ class TableVertexConsumer(Consumer):
                     print(f"Failed to update frame {frameid}, column {column}: {response.json()}")
     
     def logicfunction(self, messagebody):
-        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["targetid"]}).json().get("videoPath", self.TABLE_DETECTION_DEFAULT_VIDEO)
+        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["videoid"]}).json().get("videoPath", self.TABLE_DETECTION_DEFAULT_VIDEO)
         model = YOLO(self.TABLE_DETECTION_WEIGHTS_PATH)
         startframeid = messagebody.get("startframeid", 0)
         endframeid = messagebody.get("endframeid", 1000)
@@ -214,5 +215,5 @@ class TableVertexConsumer(Consumer):
 
 
 if __name__ == "__main__":
-    c1 = TableVertexConsumer(rabbitmqusername="pw1tt", rabbitmqpassword="securerabbitmqpassword", id="table-vertex-detection-consumer")
+    c1 = TableVertexConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="table-vertex-detection-consumer")
     c1.threadstart()

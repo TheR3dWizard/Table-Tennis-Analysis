@@ -30,7 +30,7 @@ from ultralytics import YOLO
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
+from constants import Constants
 try:
     from scipy.ndimage import gaussian_filter
     _HAS_SCIPY = True
@@ -135,7 +135,7 @@ def analyze_video(video,
       - overlay_path: str full path to saved combined heatmap overlay PNG
     """
     ensure_dir(out_dir)
-    model_name = model if model else "yolo11n-pose.pt"
+    model_name = model if model else Constants.YOLO11N_POSE_WEIGHTS_PATH
     yolo_model = YOLO(model_name)
 
     track_results = yolo_model.track(source=video,

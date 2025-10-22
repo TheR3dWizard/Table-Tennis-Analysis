@@ -11,6 +11,7 @@ import numpy as np
 import argparse
 from ultralytics import YOLO
 from collections import defaultdict
+from constants import Constants
 
 try:
     from scipy.ndimage import gaussian_filter
@@ -43,7 +44,7 @@ def extract_hip(kps, frame_w, frame_h):
 
 
 def main(args):
-    model = YOLO("yolo11n-pose.pt")
+    model = YOLO(Constants.YOLO11N_POSE_WEIGHTS_PATH)
     cap = cv2.VideoCapture(args.video)
     if not cap.isOpened():
         raise RuntimeError("Cannot open video")

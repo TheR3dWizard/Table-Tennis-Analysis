@@ -3,6 +3,7 @@ import uuid
 import requests
 import time
 import pprint
+from constants import Constants
 
 class Consumer:
     def __init__(
@@ -10,9 +11,9 @@ class Consumer:
         name,
         id=None,
         queuename=None,
-        rabbitmqusername="default",
-        rabbitmqpassword="default",
-        serverurl="http://localhost:6060",
+        rabbitmqusername=Constants.RABBITMQ_USERNAME,
+        rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+        serverurl=Constants.DEFAULT_SERVER_URL,
     ):
         self.name = name
         self.id = id or str(uuid.uuid4())
@@ -29,7 +30,7 @@ class Consumer:
         )
         self.server = serverurl
         self.hashmap = {}
-        self.pgs = PostgresService(username="pw1tt", password="securepostgrespassword")
+        self.pgs = PostgresService(username=Constants.POSTGRES_USERNAME, password=Constants.POSTGRES_PASSWORD)
         self.pgs.connect()
         # self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
@@ -47,33 +48,32 @@ class Consumer:
     def threadstart(self):
         self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
-    def placerequest(self, columnslist, targetid, returnmessageid, startframeid=None, endframeid=None):
+    def placerequest(self, columnslist, returnmessageid, startframeid=None, endframeid=None):
         message = {
             "type": "request",
             "requestid": str(uuid.uuid4()),
             "requesterid": self.id,
             "returnqueue": self.queuename,
-            "targetid": targetid,
             "columnslist": columnslist,
             "returnmessageid": returnmessageid,
             "startframeid": startframeid,
             "endframeid": endframeid
         }
-        print(f"Placing request... for {columnslist} to {targetid}")
+        print(f"Placing request... for {columnslist}")
         # [ABSTRACTED] self.rabbitmqservice.publish(str(message), queue=targetqueue)
         response = requests.post(f"{self.server}/placerequest", json=message)
 
         return response.json()
 
-    def placesuccess(self, requestid, requesterid, targetid, requestorqueue, returnmessageid, startframeid, endframeid):
+    def placesuccess(self, requestid, requesterid, requestorqueue, returnmessageid, startframeid, endframeid):
         print(f"Placing success message... from {self.queuename} to {requestorqueue}")
         message = {
             "type": "success",
             "requestid": requestid,
             "requesterid": requesterid,
-            "targetid": targetid,
             "returnqueue": requestorqueue,
             "returnmessageid": returnmessageid,
+            "mudithavar": self.id,
             "startframeid": startframeid,
             "endframeid": endframeid
         }
@@ -96,7 +96,6 @@ class Consumer:
                 self.placesuccess(
                     body["requestid"],
                     body["requesterid"],
-                    body["targetid"],
                     body["returnqueue"],
                     body["returnmessageid"],
                     body.get("startframeid", None),
@@ -111,6 +110,7 @@ class Consumer:
             print("\n\n")
             if body["returnmessageid"] in self.hashmap:
                 messagebody = self.hashmap.pop(body["returnmessageid"])
+                messagebody["successmessage"] = True
                 self.logic(messagebody)
             else:
                 print("Request ID not found in hashmap. Ignoring success message.")
