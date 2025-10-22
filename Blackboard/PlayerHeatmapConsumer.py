@@ -54,7 +54,7 @@ class PlayerHeatmapConsumer(Consumer):
 
     def logicfunction(self, messagebody):
         print(f"Processing message: {messagebody}")
-        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["targetid"]}).json().get("videoPath", Constants.DEFAULT_VIDEO_PATH)
+        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["videoid"]}).json().get("videoPath", Constants.DEFAULT_VIDEO_PATH)
         print(f"Video path retrieved: {videopath}")
         framedatamap, heatmapimagepath = analyze_video(
             video= videopath if videopath else Constants.HEATMAP_DEFAULT_VIDEO,

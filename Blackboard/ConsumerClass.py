@@ -48,31 +48,29 @@ class Consumer:
     def threadstart(self):
         self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
-    def placerequest(self, columnslist, targetid, returnmessageid, startframeid=None, endframeid=None):
+    def placerequest(self, columnslist, returnmessageid, startframeid=None, endframeid=None):
         message = {
             "type": "request",
             "requestid": str(uuid.uuid4()),
             "requesterid": self.id,
             "returnqueue": self.queuename,
-            "targetid": targetid,
             "columnslist": columnslist,
             "returnmessageid": returnmessageid,
             "startframeid": startframeid,
             "endframeid": endframeid
         }
-        print(f"Placing request... for {columnslist} to {targetid}")
+        print(f"Placing request... for {columnslist}")
         # [ABSTRACTED] self.rabbitmqservice.publish(str(message), queue=targetqueue)
         response = requests.post(f"{self.server}/placerequest", json=message)
 
         return response.json()
 
-    def placesuccess(self, requestid, requesterid, targetid, requestorqueue, returnmessageid, startframeid, endframeid):
+    def placesuccess(self, requestid, requesterid, requestorqueue, returnmessageid, startframeid, endframeid):
         print(f"Placing success message... from {self.queuename} to {requestorqueue}")
         message = {
             "type": "success",
             "requestid": requestid,
             "requesterid": requesterid,
-            "targetid": targetid,
             "returnqueue": requestorqueue,
             "returnmessageid": returnmessageid,
             "startframeid": startframeid,
@@ -97,7 +95,6 @@ class Consumer:
                 self.placesuccess(
                     body["requestid"],
                     body["requesterid"],
-                    body["targetid"],
                     body["returnqueue"],
                     body["returnmessageid"],
                     body.get("startframeid", None),
