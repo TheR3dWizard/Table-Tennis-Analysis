@@ -1,6 +1,8 @@
 from TableVertexConsumer import TableVertexConsumer
-from BallPositionConsumer import BallPositionConsumer
+from BallPositionConsumer import Ball2DPositionConsumer
 from PlayerHeatmapConsumer import PlayerHeatmapConsumer
+from TrajectoryAnalysisConsumer import TrajectoryAnalysisConsumer
+from SpacePointSearch import SpacePointSearch
 
 import threading
 import random
@@ -17,13 +19,13 @@ def run_consumer(consumer):
     consumer.threadstart()  # Assuming Consumer has a start() method
 
 c1 = TableVertexConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
-c2 = BallPositionConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
+c2 = Ball2DPositionConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
 c3 = PlayerHeatmapConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
-# c3 = Consumer("Player Heatmap", rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, logicfunction=computerandomplayercoordinates)
-# c4 = Consumer("Trajectory Analysis", rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, logicfunction=computerandomplayercoordinates)
+c4 = TrajectoryAnalysisConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
+c5 = SpacePointSearch(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
 
 threads = []
-for consumer in [c1, c2, c3]:
+for consumer in [c1, c2, c3, c4, c5]:
     t = threading.Thread(target=run_consumer, args=(consumer,))
     t.start()
     threads.append(t)
