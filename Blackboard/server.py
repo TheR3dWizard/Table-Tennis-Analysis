@@ -20,7 +20,7 @@ consumer_column_queue_map = {
     "tabley4" : "table-vertex-detection",
     "ballx":"ball-position-detection",
     "bally":"ball-position-detection",
-    "ballz":"ball-position-detection",
+    "ballz":"depth-map-estimator",
     "player1x":"player-heatmap-generation",
     "player1y":"player-heatmap-generation",
     "player1z":"player-heatmap-generation",
