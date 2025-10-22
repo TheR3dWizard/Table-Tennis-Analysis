@@ -19,4 +19,6 @@ pw1
 *.pt
 outputs/
 *.txt
+*.yaml
+*.csv
 .idea/
