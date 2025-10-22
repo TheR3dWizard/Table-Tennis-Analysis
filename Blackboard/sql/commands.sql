@@ -21,11 +21,11 @@ CREATE TABLE table_tennis_analysis (
     player2x FLOAT,
     player2y FLOAT,
     player2z FLOAT,
-    ballspeed FLOAT,
     ballxvector FLOAT,
     ballyvector FLOAT,
     ballzvector FLOAT,
-    remarks VARCHAR
+    remarks VARCHAR,
+    PRIMARY KEY (videoId, frameId)
 );
 
 CREATE TABLE video_table (
@@ -40,7 +40,7 @@ CREATE TABLE video_table (
 INSERT INTO
     table_tennis_analysis (
         videoId,
-        frameId,
+        frameId ,
         frameAction,
         tablex1,
         tabley1,
@@ -221,6 +221,7 @@ VALUES
     );
 
 -- end test comments for tablevertexdetection
+
 -- start test commands for heatmap
 INSERT INTO
     table_tennis_analysis (
@@ -398,6 +399,69 @@ VALUES
         0.85
     );
 
+-- start test commands for ballposition
+INSERT INTO
+    table_tennis_analysis (
+    videoId,
+    frameId,
+    frameAction,
+    depthMapPath
+)
+VALUES
+    (
+        1,
+        101,
+        'serve',
+        'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F'
+    );
+
+INSERT INTO
+    table_tennis_analysis (
+    videoId,
+    frameId,
+    frameAction,
+    depthMapPath
+)
+VALUES
+    (
+        1,
+        102,
+        'serve',
+        'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F'
+    );
+
+INSERT INTO
+    table_tennis_analysis (
+    videoId,
+    frameId,
+    frameAction,
+    depthMapPath
+)
+VALUES
+    (
+        1,
+        103,
+        'serve',
+        'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F'
+    );
+
+INSERT INTO
+    table_tennis_analysis (
+    videoId,
+    frameId,
+    frameAction,
+    depthMapPath
+)
+VALUES
+    (
+        1,
+        104,
+        'serve',
+        'https://www.paralympic.org/sites/default/files/styles/large_original/public/images/150413103127066_LON_0109_4685.jpg?itok=rgvvqm0F'
+    );
+
+-- end test comments for ballposition
+
 DELETE FROM
     table_tennis_analysis;
 
@@ -406,6 +470,16 @@ SELECT
 FROM
     table_tennis_analysis;
 
+SELECT
+    *
+FROM
+    video_table;
+
 DROP TABLE IF EXISTS video_table;
 
 DROP TABLE IF EXISTS table_tennis_analysis;
+
+UPDATE table_tennis_analysis SET ballx = 615.0 WHERE frameId = 101 AND videoId = 1;
+
+INSERT INTO video_table (videoId, videoPath, videoName)
+VALUES (1, '/Users/akashshanmugaraj/Documents/Personal Projects/Table-Tennis-Analysis/assets/rallies_02.mp4', 'SR');
