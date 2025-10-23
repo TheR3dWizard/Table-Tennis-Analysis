@@ -8,10 +8,10 @@ import torch
 import json 
 import pprint
 
-class BallPositionConsumer(Consumer):
+class Ball2DPositionConsumer(Consumer):
     def __init__(
         self,
-        name="Ball Position Detection",
+        name="Ball 2D Position Detection",
         id=None,
         queuename=None,
         rabbitmqusername="default",
@@ -31,7 +31,6 @@ class BallPositionConsumer(Consumer):
         self.processable_columns = [
             "ballx",
             "bally",
-            "ballz",
         ]
         self.joinserver()
     
@@ -111,7 +110,7 @@ class BallPositionConsumer(Consumer):
                 ball_markup[str(i)] = missingcoordinate
 
         self.saveresult(ball_markup, messagebody["videoid"])
-        pprint.pprint(ball_markup)
+
         return True
 
     def saveresult(self, ball_markup, videoId):
@@ -136,5 +135,5 @@ class BallPositionConsumer(Consumer):
         return True
     
 if __name__ == "__main__":
-    c1 = BallPositionConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="ball-position-detection")
+    c1 = Ball2DPositionConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="ball-2d-position-detection")
     c1.threadstart()

@@ -33,9 +33,10 @@ class TrajectoryAnalysisConsumer(Consumer):
         self.logic = self.logicfunction
         self.testframeid = 16
         self.processable_columns = [
-            "ballx",
-            "bally",
-            "ballz",
+            "ballxvector",
+            "ballyvector",
+            "ballzvector",
+            "ballbounce",
         ]
         self.tablecoordinatescolumns = [
             "tablex1",

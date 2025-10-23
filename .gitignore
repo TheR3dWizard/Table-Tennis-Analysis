@@ -8,19 +8,16 @@
 *.npy
 *.json
 *.mp4
-<<<<<<< HEAD
 *.yaml
 *.cache
 *.csv
 *.txt
-=======
 *.npy
 *.txt
 *.cache
 *.yaml
 *.pt
 *.csv
->>>>>>> b7331fcaa27fa075909546121be07b3b39349202
 Datasets/Dataset/game1/Clip1/0000.jpg
 Datasets/Dataset/game1/Clip10/Label.csv
 # Datasets/OpenTT/game_1/segmentation_masks/17.png
@@ -29,4 +26,11 @@ Datasets/OpenTT/game_1/Unconfirmed 614244.crdownload
 pw1
 .env
 **/__pycache__/
+*.pt
+outputs/
+Ball Detection/filtered_datasets/*
+*.txt
+*.yaml
+*.csv
+.idea/
 *.pt
