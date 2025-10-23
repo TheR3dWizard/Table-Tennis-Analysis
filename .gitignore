@@ -6,6 +6,9 @@
 *.jpeg
 *.webp
 *.npy
+*.cache
+*.txt
+*.yaml
 *.json
 *.mp4
 *.yaml
