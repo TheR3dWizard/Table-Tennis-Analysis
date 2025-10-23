@@ -2,6 +2,7 @@ from TableVertexConsumer import TableVertexConsumer
 from BallPositionConsumer import Ball2DPositionConsumer
 from PlayerHeatmapConsumer import PlayerHeatmapConsumer
 from TrajectoryAnalysisConsumer import TrajectoryAnalysisConsumer
+
 # from SpacePointSearch import SpacePointSearch
 
 import threading

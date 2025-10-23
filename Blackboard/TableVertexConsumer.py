@@ -243,6 +243,7 @@ class TableVertexConsumer(Consumer):
         self.saveresult(messagebody["videoid"], returnobject)
         return True
 
+
 if __name__ == "__main__":
     c1 = TableVertexConsumer(
         rabbitmqusername=Constants.RABBITMQ_USERNAME,

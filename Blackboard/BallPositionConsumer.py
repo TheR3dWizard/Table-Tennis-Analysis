@@ -4,9 +4,7 @@ import random
 from constants import Constants
 from ultralytics import YOLO
 import cv2
-import torch
 import json
-import pprint
 
 
 class Ball2DPositionConsumer(Consumer):
@@ -92,7 +90,11 @@ class Ball2DPositionConsumer(Consumer):
                     x1, y1, x2, y2 = boxes[0]
                     cx = int((x1 + x2) / 2)
                     cy = int((y1 + y2) / 2)
-                    results_dict[str(frame_num)] = {"ballx": cx, "bally": cy, "ballvisibility": True}
+                    results_dict[str(frame_num)] = {
+                        "ballx": cx,
+                        "bally": cy,
+                        "ballvisibility": True,
+                    }
 
             frame_num += 1
 
@@ -119,11 +121,7 @@ class Ball2DPositionConsumer(Consumer):
             conf=0.25,
         )
 
-        missingcoordinate = {
-            "ballx": -1,
-            "bally": -1,
-            "ballvisibility": False
-        }
+        missingcoordinate = {"ballx": -1, "bally": -1, "ballvisibility": False}
 
         for i in range(messagebody["startframeid"], messagebody["endframeid"] + 1):
             if str(i) not in ball_markup:
@@ -143,12 +141,16 @@ class Ball2DPositionConsumer(Consumer):
                     json={
                         "frameid": int(frameid),
                         "column": column,
-                        "value": value if value in {True, False} else float(value),  # Convert numpy float32 to Python float
+                        "value": (
+                            value if value in {True, False} else float(value)
+                        ),  # Convert numpy float32 to Python float
                         "videoid": videoId,
                     },
                 )
                 if response.status_code == 200:
-                    self.newprint(f"Updated frame {frameid}, column {column} successfully.")
+                    self.newprint(
+                        f"Updated frame {frameid}, column {column} successfully."
+                    )
                 else:
                     self.newprint(
                         f"Failed to update frame {frameid}, column {column}: {response.json()}"

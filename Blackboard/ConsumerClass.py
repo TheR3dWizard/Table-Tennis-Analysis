@@ -61,7 +61,12 @@ class Consumer:
         self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
     def placerequest(
-        self, columnslist, returnmessageid, startframeid=None, endframeid=None, videoid=1
+        self,
+        columnslist,
+        returnmessageid,
+        startframeid=None,
+        endframeid=None,
+        videoid=1,
     ):
         message = {
             "type": "request",
@@ -91,7 +96,9 @@ class Consumer:
         endframeid,
         videoid=1,
     ):
-        self.newprint(f"Placing success message... from {self.queuename} to {requestorqueue}")
+        self.newprint(
+            f"Placing success message... from {self.queuename} to {requestorqueue}"
+        )
         message = {
             "type": "success",
             "requestid": requestid,
@@ -129,7 +136,9 @@ class Consumer:
                     videoid=body.get("videoid", 1),
                 )
             else:
-                self.newprint("Logic execution failed or pending, not sending success message.")
+                self.newprint(
+                    "Logic execution failed or pending, not sending success message."
+                )
 
         elif body["type"] == "success":
             self.newprint(f"\n\n[SUCCESS] Message Received:")
@@ -141,7 +150,9 @@ class Consumer:
                 self.logic(messagebody)
             else:
                 self.newprint(self.hashmap)
-                self.newprint("Request ID not found in hashmap. Ignoring success message.")
+                self.newprint(
+                    "Request ID not found in hashmap. Ignoring success message."
+                )
 
     def check(self, frameid, columnlist):
         message = {"frameid": frameid, "columns": columnlist}
