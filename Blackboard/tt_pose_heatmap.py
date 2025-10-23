@@ -31,8 +31,10 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from constants import Constants
+
 try:
     from scipy.ndimage import gaussian_filter
+
     _HAS_SCIPY = True
 except Exception:
     _HAS_SCIPY = False
@@ -41,9 +43,11 @@ except Exception:
 LEFT_HIP_IDX = 11
 RIGHT_HIP_IDX = 12
 
+
 def ensure_dir(p):
     if not os.path.exists(p):
         os.makedirs(p, exist_ok=True)
+
 
 def add_point_to_map(density_map, x, y, radius=7, intensity=1.0):
     """Draw a filled circle on density_map (float) at integer coords (x,y)."""
@@ -53,6 +57,7 @@ def add_point_to_map(density_map, x, y, radius=7, intensity=1.0):
     if ix < 0 or iy < 0 or ix >= w or iy >= h:
         return
     cv2.circle(density_map, (ix, iy), radius, float(intensity), thickness=-1)
+
 
 def normalize_if_needed(kp, frame_w, frame_h):
     """
@@ -73,6 +78,7 @@ def normalize_if_needed(kp, frame_w, frame_h):
     else:
         arr = arr.reshape(-1, 3)
     return arr
+
 
 def extract_hip_point_from_keypoints(kp_pts, frame_w, frame_h):
     """
@@ -113,18 +119,21 @@ def extract_hip_point_from_keypoints(kp_pts, frame_w, frame_h):
         return None
     return float(chosen[0]), float(chosen[1])
 
-def analyze_video(video,
-                  start_frame=0,
-                  end_frame=-1,
-                  model=None,
-                  tracker="bytetrack.yaml",
-                  confidence=0.3,
-                  device=None,
-                  point_radius=6,
-                  sigma=8.0,
-                  out_dir="outputs",
-                  num_players=2,
-                  min_track_points=50):
+
+def analyze_video(
+    video,
+    start_frame=0,
+    end_frame=-1,
+    model=None,
+    tracker="bytetrack.yaml",
+    confidence=0.3,
+    device=None,
+    point_radius=6,
+    sigma=8.0,
+    out_dir="outputs",
+    num_players=2,
+    min_track_points=50,
+):
     """
     Run tracking+pose on a video, keep the main players, build heatmaps, and
     return per-frame positions for the two selected players and the overlay path.
@@ -138,12 +147,14 @@ def analyze_video(video,
     model_name = model if model else Constants.YOLO11N_POSE_WEIGHTS_PATH
     yolo_model = YOLO(model_name)
 
-    track_results = yolo_model.track(source=video,
-                                     tracker=tracker or "bytetrack",
-                                     conf=confidence,
-                                     stream=True,
-                                     device=device or None,
-                                     persist=True)
+    track_results = yolo_model.track(
+        source=video,
+        tracker=tracker or "bytetrack",
+        conf=confidence,
+        stream=True,
+        device=device or None,
+        persist=True,
+    )
 
     player_hips = {}
     # Per-frame temporary store: frame_idx -> {track_id: (x,y)}
@@ -189,7 +200,11 @@ def analyze_video(video,
 
         parsed_ids = []
         try:
-            parsed_ids = [int(x) for x in ids.tolist()] if hasattr(ids, "tolist") else [int(x) for x in ids]
+            parsed_ids = (
+                [int(x) for x in ids.tolist()]
+                if hasattr(ids, "tolist")
+                else [int(x) for x in ids]
+            )
         except Exception:
             try:
                 parsed_ids = [int(ids)]
@@ -265,13 +280,14 @@ def analyze_video(video,
     for tid in selected_ids:
         pts = player_hips.get(tid, [])
         density = np.zeros((h, w), dtype=np.float32)
-        for (x, y) in pts:
+        for x, y in pts:
             add_point_to_map(density, x, y, radius=point_radius, intensity=1.0)
         if _HAS_SCIPY:
             density = gaussian_filter(density, sigma=sigma)
         else:
             kr = int(max(3, sigma * 2 + 1))
-            if kr % 2 == 0: kr += 1
+            if kr % 2 == 0:
+                kr += 1
             density = cv2.GaussianBlur(density, (kr, kr), sigmaX=sigma)
         maxv = density.max() if density.max() > 0 else 1.0
         vis = (density / maxv * 255).astype(np.uint8)
@@ -287,7 +303,9 @@ def analyze_video(video,
     cmap = plt.get_cmap("jet")
     colored = cmap(norm / 255.0)[:, :, :3]
     colored = (colored * 255).astype(np.uint8)
-    overlay = cv2.addWeighted(sample_frame, 0.6, cv2.cvtColor(colored, cv2.COLOR_RGB2BGR), 0.4, 0)
+    overlay = cv2.addWeighted(
+        sample_frame, 0.6, cv2.cvtColor(colored, cv2.COLOR_RGB2BGR), 0.4, 0
+    )
 
     # Unique filename using hash(video path + start/end) + timestamp
     hasher = hashlib.md5()
@@ -324,20 +342,65 @@ def main(args):
     # Optionally dump JSON mapping for CLI usage
     # Users importing the function will get the dict returned directly
 
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--video", required=True, help="Path to input video (table tennis match)")
+    p.add_argument(
+        "--video", required=True, help="Path to input video (table tennis match)"
+    )
     p.add_argument("--out_dir", default="outputs", help="Output directory")
-    p.add_argument("--model", default=None, help="YOLO model path or name (default: yolo11n-pose.pt)")
-    p.add_argument("--tracker", default="bytetrack.yaml", help="Tracker (bytetrack, strongsort etc.)")
-    p.add_argument("--confidence", type=float, default=0.3, help="Detection confidence threshold")
-    p.add_argument("--device", default=None, help="Device id (e.g. 0) or 'cpu' to force CPU")
-    p.add_argument("--point_radius", type=int, default=6, help="Radius used when adding hip points to density map")
-    p.add_argument("--sigma", type=float, default=8.0, help="Gaussian sigma for smoothing density map")
-    p.add_argument("--start_frame", type=int, default=0, help="Frame index to start processing from")
-    p.add_argument("--end_frame", type=int, default=-1, help="Frame index to stop processing at (-1 means till end)")
-    p.add_argument("--num_players", type=int, default=2, help="Number of primary players to keep based on track length")
-    p.add_argument("--min_track_points", type=int, default=50, help="Minimum hip samples to consider a track a player")
+    p.add_argument(
+        "--model",
+        default=None,
+        help="YOLO model path or name (default: yolo11n-pose.pt)",
+    )
+    p.add_argument(
+        "--tracker",
+        default="bytetrack.yaml",
+        help="Tracker (bytetrack, strongsort etc.)",
+    )
+    p.add_argument(
+        "--confidence", type=float, default=0.3, help="Detection confidence threshold"
+    )
+    p.add_argument(
+        "--device", default=None, help="Device id (e.g. 0) or 'cpu' to force CPU"
+    )
+    p.add_argument(
+        "--point_radius",
+        type=int,
+        default=6,
+        help="Radius used when adding hip points to density map",
+    )
+    p.add_argument(
+        "--sigma",
+        type=float,
+        default=8.0,
+        help="Gaussian sigma for smoothing density map",
+    )
+    p.add_argument(
+        "--start_frame",
+        type=int,
+        default=0,
+        help="Frame index to start processing from",
+    )
+    p.add_argument(
+        "--end_frame",
+        type=int,
+        default=-1,
+        help="Frame index to stop processing at (-1 means till end)",
+    )
+    p.add_argument(
+        "--num_players",
+        type=int,
+        default=2,
+        help="Number of primary players to keep based on track length",
+    )
+    p.add_argument(
+        "--min_track_points",
+        type=int,
+        default=50,
+        help="Minimum hip samples to consider a track a player",
+    )
 
     args = p.parse_args()
     main(args)
