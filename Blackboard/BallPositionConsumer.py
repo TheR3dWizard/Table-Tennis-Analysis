@@ -36,7 +36,7 @@ class Ball2DPositionConsumer(Consumer):
         self.joinserver()
 
     def computerandomballcoordinates(self):
-        print("Executing computerandomballcoordinates....")
+        self.newprint("Executing computerandomballcoordinates....")
         x, y, z = (
             random.uniform(0, 1000),
             random.uniform(0, 1000),
@@ -79,7 +79,7 @@ class Ball2DPositionConsumer(Consumer):
         frame_num = start_frame
 
         while frame_num < end_frame:
-            print(f"Processing frame {frame_num}", end="\r")
+            self.newprint(f"Processing frame {frame_num}", end="\r")
             ret, frame = cap.read()
             if not ret:
                 break
@@ -92,7 +92,7 @@ class Ball2DPositionConsumer(Consumer):
                     x1, y1, x2, y2 = boxes[0]
                     cx = int((x1 + x2) / 2)
                     cy = int((y1 + y2) / 2)
-                    results_dict[str(frame_num)] = {"ballx": cx, "bally": cy}
+                    results_dict[str(frame_num)] = {"ballx": cx, "bally": cy, "ballvisibility": True}
 
             frame_num += 1
 
@@ -119,11 +119,10 @@ class Ball2DPositionConsumer(Consumer):
             conf=0.25,
         )
 
-        pprint.pprint(json_output)
-
         missingcoordinate = {
             "ballx": -1,
             "bally": -1,
+            "ballvisibility": False
         }
 
         for i in range(messagebody["startframeid"], messagebody["endframeid"] + 1):
@@ -135,7 +134,7 @@ class Ball2DPositionConsumer(Consumer):
         return True
 
     def saveresult(self, ball_markup, videoId):
-        print("Executing saveresult.... for ", videoId)
+        self.newprint("Executing saveresult.... for ", videoId)
 
         for frameid, coords in ball_markup.items():
             for column, value in coords.items():
@@ -144,14 +143,14 @@ class Ball2DPositionConsumer(Consumer):
                     json={
                         "frameid": int(frameid),
                         "column": column,
-                        "value": float(value),  # Convert numpy float32 to Python float
+                        "value": value if value in {True, False} else float(value),  # Convert numpy float32 to Python float
                         "videoid": videoId,
                     },
                 )
                 if response.status_code == 200:
-                    print(f"Updated frame {frameid}, column {column} successfully.")
+                    self.newprint(f"Updated frame {frameid}, column {column} successfully.")
                 else:
-                    print(
+                    self.newprint(
                         f"Failed to update frame {frameid}, column {column}: {response.json()}"
                     )
 
