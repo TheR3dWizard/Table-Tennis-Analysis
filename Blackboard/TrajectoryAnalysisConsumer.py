@@ -291,7 +291,7 @@ class TrajectoryAnalysisConsumer(Consumer):
             print(f"Missing ball coordinates for frames: {ball_coordinates_data}")
             # TODO: Check if framestart and end being the same causes any issues downstream
             for (missingframestart, missingframeend) in ball_coordinates_data:
-                self.placerequest(self.ballcoordinatescolumns, messagebody["requestid"], missingframestart, missingframeend)
+                self.placerequest(self.ballcoordinatescolumns, messagebody["requestid"], missingframestart, missingframeend, videoid=messagebody["videoid"])
 
             return False
         
@@ -299,7 +299,7 @@ class TrajectoryAnalysisConsumer(Consumer):
             print(f"Missing table coordinates for frames: {table_coordinates_data}")
             # TODO: Check if framestart and end being the same causes any issues downstream
             for (missingframestart, missingframeend) in table_coordinates_data:
-                self.placerequest(self.tablecoordinatescolumns, messagebody["requestid"], missingframestart, missingframeend)
+                self.placerequest(self.tablecoordinatescolumns, messagebody["requestid"], missingframestart, missingframeend, videoid=messagebody["videoid"])
 
             return False
         
@@ -415,8 +415,8 @@ class TrajectoryAnalysisConsumer(Consumer):
                 
     def saveballbounce(self, bounceframes, videoId):
         print("Executing saveballbounce.... for ", videoId)
-
         for frameid in bounceframes:
+            print("Updating bounce for frameid: ", frameid)
             response = requests.post(
                 f"{self.server}/updatecolumn",
                 json={
@@ -430,7 +430,7 @@ class TrajectoryAnalysisConsumer(Consumer):
                 print(f"Updated frame {frameid}, column ballbounce successfully.")
             else:
                 print(f"Failed to update frame {frameid}, column ballbounce: {response.json()}")
-
+        print("Finished updating ballbounce for all frames.")
 if __name__ == "__main__":
     c1 = TrajectoryAnalysisConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="trajectory-analysis")
     c1.threadstart()
