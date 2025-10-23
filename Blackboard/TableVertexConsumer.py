@@ -241,7 +241,7 @@ class TableVertexConsumer(Consumer):
 
         print("Saving results to database...")
         self.saveresult(messagebody["videoid"], returnobject)
-
+        return True
 
 if __name__ == "__main__":
     c1 = TableVertexConsumer(
