@@ -9,20 +9,38 @@ import random
 
 from constants import Constants
 
+
 def computerandomplayercoordinates():
     print("Executing computerandomplayercoordinates....")
-    x, y, z = random.uniform(0,1000), random.uniform(0,1000), random.uniform(0,1000)
+    x, y, z = random.uniform(0, 1000), random.uniform(0, 1000), random.uniform(0, 1000)
 
-    return (x,y,z)
+    return (x, y, z)
+
 
 def run_consumer(consumer):
     consumer.threadstart()  # Assuming Consumer has a start() method
 
-c1 = TableVertexConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
-c2 = Ball2DPositionConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
-c3 = PlayerHeatmapConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
-c4 = TrajectoryAnalysisConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
-c5 = SpacePointSearch(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD)
+
+c1 = TableVertexConsumer(
+    rabbitmqusername=Constants.RABBITMQ_USERNAME,
+    rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+)
+c2 = Ball2DPositionConsumer(
+    rabbitmqusername=Constants.RABBITMQ_USERNAME,
+    rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+)
+c3 = PlayerHeatmapConsumer(
+    rabbitmqusername=Constants.RABBITMQ_USERNAME,
+    rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+)
+c4 = TrajectoryAnalysisConsumer(
+    rabbitmqusername=Constants.RABBITMQ_USERNAME,
+    rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+)
+c5 = SpacePointSearch(
+    rabbitmqusername=Constants.RABBITMQ_USERNAME,
+    rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+)
 
 threads = []
 for consumer in [c1, c2, c3, c4, c5]:

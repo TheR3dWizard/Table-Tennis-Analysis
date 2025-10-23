@@ -7,6 +7,7 @@ from ultralytics import YOLO
 import pprint
 from constants import Constants
 
+
 class TableVertexConsumer(Consumer):
     def __init__(
         self,
@@ -40,14 +41,14 @@ class TableVertexConsumer(Consumer):
             "tabley4",
         ]
         self.joinserver()
-    
+
     def computerandomtablevertices(self):
         print("Executing computerandomtablevertices....")
-        x1, y1 = random.uniform(0,1000), random.uniform(0,1000)
-        x2, y2 = random.uniform(0,1000), random.uniform(0,1000)
-        x3, y3 = random.uniform(0,1000), random.uniform(0,1000)
-        x4, y4 = random.uniform(0,1000), random.uniform(0,1000)
-        '''
+        x1, y1 = random.uniform(0, 1000), random.uniform(0, 1000)
+        x2, y2 = random.uniform(0, 1000), random.uniform(0, 1000)
+        x3, y3 = random.uniform(0, 1000), random.uniform(0, 1000)
+        x4, y4 = random.uniform(0, 1000), random.uniform(0, 1000)
+        """
         tablex1 FLOAT,
         tabley1 FLOAT,
         tablex2 FLOAT,
@@ -55,7 +56,7 @@ class TableVertexConsumer(Consumer):
         tablex3 FLOAT,
         tabley3 FLOAT,
         tablex4 FLOAT,
-        tabley4 FLOAT,'''
+        tabley4 FLOAT,"""
         return {
             "tablex1": x1,
             "tabley1": y1,
@@ -71,19 +72,19 @@ class TableVertexConsumer(Consumer):
         cap = cv2.VideoCapture(video)
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
 
-
         frame_num = start_frame
         all_results = []
-        
+
         # Detect device: use MPS for Mac GPU, otherwise CPU
         import torch
+
         if torch.backends.mps.is_available():
             device = "cpu"
         else:
             device = "cpu"
-        
+
         print(f"Using device: {device}")
-        
+
         while True:
             ret, frame = cap.read()
             if not ret or frame_num > end_frame:
@@ -97,18 +98,23 @@ class TableVertexConsumer(Consumer):
                 annotated_frame = r.plot()
                 # cv2.imshow("YOLO Pose - Full", annotated_frame)
 
-                keypoints = r.keypoints.cpu().numpy()  # (num_instances, num_keypoints, 3)
+                keypoints = (
+                    r.keypoints.cpu().numpy()
+                )  # (num_instances, num_keypoints, 3)
                 if len(keypoints) > 0:
-                    table_corners = keypoints[0][:, :2]  # first instance, all keypoints, x,y only
-                    print(f"Frame {frame_num}: Table corners (normalized): {table_corners}")
+                    table_corners = keypoints[0][
+                        :, :2
+                    ]  # first instance, all keypoints, x,y only
+                    print(
+                        f"Frame {frame_num}: Table corners (normalized): {table_corners}"
+                    )
 
             frame_num += 1
-
 
         cap.release()
         cv2.destroyAllWindows()
         return all_results
-    
+
     def average_results(results):
         if len(results) == 0:
             print("No results to average")
@@ -123,7 +129,7 @@ class TableVertexConsumer(Consumer):
 
             # Case 1: use keypoints if available
             if len(keypoints) > 0:
-                candidate = keypoints[0][:, :2]   # take first detection (x, y only)
+                candidate = keypoints[0][:, :2]  # take first detection (x, y only)
                 if candidate.shape == (4, 2):
                     table_corners = candidate
 
@@ -132,12 +138,15 @@ class TableVertexConsumer(Consumer):
                 if hasattr(r, "boxes") and len(r.boxes) > 0:
                     box = r.boxes[0].xyxy.cpu().numpy()[0]  # (x1, y1, x2, y2)
                     x1, y1, x2, y2 = box
-                    table_corners = np.array([
-                        [x1, y1],  # top-left
-                        [x2, y1],  # top-right
-                        [x2, y2],  # bottom-right
-                        [x1, y2],  # bottom-left
-                    ], dtype=np.float32)
+                    table_corners = np.array(
+                        [
+                            [x1, y1],  # top-left
+                            [x2, y1],  # top-right
+                            [x2, y2],  # bottom-right
+                            [x1, y2],  # bottom-left
+                        ],
+                        dtype=np.float32,
+                    )
 
             # Add if we have valid corners
             if table_corners is not None and table_corners.shape == (4, 2):
@@ -165,7 +174,7 @@ class TableVertexConsumer(Consumer):
         returnobject[frameid] = framereturnobject
 
         return returnobject
-    
+
     def saveresult(self, videoId, resultMap):
         print("Executing saveresult.... for ", videoId)
         pprint.pprint(resultMap)
@@ -177,16 +186,25 @@ class TableVertexConsumer(Consumer):
                         "frameid": int(frameid),
                         "column": column,
                         "value": float(value),  # Convert numpy float32 to Python float
-                        "videoid": videoId
-                    }
+                        "videoid": videoId,
+                    },
                 )
                 if response.status_code == 200:
                     print(f"Updated frame {frameid}, column {column} successfully.")
                 else:
-                    print(f"Failed to update frame {frameid}, column {column}: {response.json()}")
-    
+                    print(
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}"
+                    )
+
     def logicfunction(self, messagebody):
-        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["videoid"]}).json().get("videoPath", self.TABLE_DETECTION_DEFAULT_VIDEO)
+        videopath = (
+            requests.get(
+                f"{self.server}/get-video-path-against-id",
+                params={"videoId": messagebody["videoid"]},
+            )
+            .json()
+            .get("videoPath", self.TABLE_DETECTION_DEFAULT_VIDEO)
+        )
         model = YOLO(self.TABLE_DETECTION_WEIGHTS_PATH)
         startframeid = messagebody.get("startframeid", 0)
         endframeid = messagebody.get("endframeid", 1000)
@@ -202,18 +220,33 @@ class TableVertexConsumer(Consumer):
         returnobject = dict()
         for i in results:
             if not len(i.boxes):
-                self.construct_return_object(returnobject, startframeid, (0,0,0,0,0,0,0,0))
+                self.construct_return_object(
+                    returnobject, startframeid, (0, 0, 0, 0, 0, 0, 0, 0)
+                )
             for box in i.boxes:
                 box_coords = box.xyxy.cpu().numpy()[0]  # (x1, y1, x2, y2)
                 x1, y1, x2, y2 = box_coords
-                corners = (x1, y1, x2, y1, x2, y2, x1, y2)  # top-left, top-right, bottom-right, bottom-left
+                corners = (
+                    x1,
+                    y1,
+                    x2,
+                    y1,
+                    x2,
+                    y2,
+                    x1,
+                    y2,
+                )  # top-left, top-right, bottom-right, bottom-left
                 self.construct_return_object(returnobject, startframeid, corners)
             startframeid += 1
 
         print("Saving results to database...")
-        self.saveresult(messagebody["videoid"], returnobject)            
+        self.saveresult(messagebody["videoid"], returnobject)
 
 
 if __name__ == "__main__":
-    c1 = TableVertexConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="table-vertex-detection-consumer")
+    c1 = TableVertexConsumer(
+        rabbitmqusername=Constants.RABBITMQ_USERNAME,
+        rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+        id="table-vertex-detection-consumer",
+    )
     c1.threadstart()

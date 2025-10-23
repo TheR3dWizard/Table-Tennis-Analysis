@@ -5,8 +5,9 @@ from constants import Constants
 from ultralytics import YOLO
 import cv2
 import torch
-import json 
+import json
 import pprint
+
 
 class SpacePointSearch(Consumer):
     def __init__(
@@ -33,7 +34,7 @@ class SpacePointSearch(Consumer):
             "bally",
         ]
         self.joinserver()
-    
+
     def getballcoordinates(self, startframeid, endframeid, videoid):
         returnmap = dict()
         missingframes = []
@@ -43,8 +44,8 @@ class SpacePointSearch(Consumer):
                 json={
                     "frameid": frameid,
                     "columns": self.ballcoordinatescolumns,
-                    "videoid": videoid
-                }
+                    "videoid": videoid,
+                },
             )
             data = response.json()
             if response.status_code == 404 or not data:
@@ -56,9 +57,15 @@ class SpacePointSearch(Consumer):
                         data[column] = None
                 returnmap[frameid] = data
             else:
-                raise Exception(f"Failed to get ball coordinates for frame {frameid}: {response.json()}")
+                raise Exception(
+                    f"Failed to get ball coordinates for frame {frameid}: {response.json()}"
+                )
 
-        return (True, returnmap) if not missingframes else (False, self.groupframesintoranges(missingframes))
+        return (
+            (True, returnmap)
+            if not missingframes
+            else (False, self.groupframesintoranges(missingframes))
+        )
 
     def getzpointfromxandy(self, annotatedimagepath, xcoordinate, ycoordinate):
         # Dummy implementation for Z coordinate retrieval
@@ -72,32 +79,52 @@ class SpacePointSearch(Consumer):
         return (True, annotated_image_path)
 
     def logicfunction(self, messagebody):
-        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["videoid"]}).json().get("videoPath", Constants.DEFAULT_VIDEO_PATH)
+        videopath = (
+            requests.get(
+                f"{self.server}/get-video-path-against-id",
+                params={"videoId": messagebody["videoid"]},
+            )
+            .json()
+            .get("videoPath", Constants.DEFAULT_VIDEO_PATH)
+        )
         startframeid = messagebody.get("startframeid", 0)
         endframeid = messagebody.get("endframeid", 1000)
-        
+
         endframeimagepath = "/path/to/end/frame/image.jpg"  # Placeholder path
-        
-        ball_coordinates_status, ball_coordinates_data = self.getballcoordinates(startframeid, endframeid, messagebody["videoid"])
+
+        ball_coordinates_status, ball_coordinates_data = self.getballcoordinates(
+            startframeid, endframeid, messagebody["videoid"]
+        )
 
         if not ball_coordinates_status:
             print(f"Missing ball coordinates for frames: {ball_coordinates_data}")
             # TODO: Check if framestart and end being the same causes any issues downstream
-            for (missingframestart, missingframeend) in ball_coordinates_data:
-                self.placerequest(self.ballcoordinatescolumns, messagebody["requestid"], missingframestart, missingframeend)
+            for missingframestart, missingframeend in ball_coordinates_data:
+                self.placerequest(
+                    self.ballcoordinatescolumns,
+                    messagebody["requestid"],
+                    missingframestart,
+                    missingframeend,
+                )
 
             return False
 
-        operation_status, annotated_image_path = self.annotate_coordinates_on_image_and_save(endframeimagepath, ball_coordinates_data)
+        operation_status, annotated_image_path = (
+            self.annotate_coordinates_on_image_and_save(
+                endframeimagepath, ball_coordinates_data
+            )
+        )
 
         finalresult = dict()
         for frameid, coords in ball_coordinates_data.items():
             xcoordinate = coords.get("ballx", None)
             ycoordinate = coords.get("bally", None)
-            zcoordinate = self.getzpointfromxandy(annotated_image_path, xcoordinate, ycoordinate) if xcoordinate is not None and ycoordinate is not None else None
-            finalresult[frameid] = {
-                "ballz": zcoordinate
-            }
+            zcoordinate = (
+                self.getzpointfromxandy(annotated_image_path, xcoordinate, ycoordinate)
+                if xcoordinate is not None and ycoordinate is not None
+                else None
+            )
+            finalresult[frameid] = {"ballz": zcoordinate}
 
         self.saveresult(finalresult, messagebody["videoid"])
 
@@ -114,16 +141,23 @@ class SpacePointSearch(Consumer):
                         "frameid": int(frameid),
                         "column": column,
                         "value": float(value),  # Convert numpy float32 to Python float
-                        "videoid": videoId
-                    }
+                        "videoid": videoId,
+                    },
                 )
                 if response.status_code == 200:
                     print(f"Updated frame {frameid}, column {column} successfully.")
                 else:
-                    print(f"Failed to update frame {frameid}, column {column}: {response.json()}")
-                
+                    print(
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}"
+                    )
+
         return True
-    
+
+
 if __name__ == "__main__":
-    c1 = SpacePointSearch(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="space-point-searchs")
+    c1 = SpacePointSearch(
+        rabbitmqusername=Constants.RABBITMQ_USERNAME,
+        rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+        id="space-point-searchs",
+    )
     c1.threadstart()
