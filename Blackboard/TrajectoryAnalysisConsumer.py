@@ -345,7 +345,7 @@ class TrajectoryAnalysisConsumer(Consumer):
                 if v_change >= min_velocity_change and i - last_bounce_frame > 3:
                     bounce_frames.append(segment_frames[i])
                     last_bounce_frame = i
-        shifted_bounce_frames = [bf + startframeid for bf in bounce_frames]
+        shifted_bounce_frames = [bf for bf in bounce_frames]
         return shifted_bounce_frames
 
     def logicfunction(self, messagebody):
