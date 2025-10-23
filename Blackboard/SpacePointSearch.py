@@ -11,6 +11,8 @@ import numpy as np
 from PIL import Image
 from transformers import AutoImageProcessor, AutoModelForDepthEstimation
 import hashlib
+import os
+from datetime import datetime
 
 
 
@@ -35,8 +37,7 @@ class SpacePointSearch(Consumer):
         self.logic = self.logicfunction
         self.testframeid = 16
         self.processable_columns = [
-            "ballx",
-            "bally",
+            "ballz",
         ]
         # Initialize depth estimator (called once during initialization)
         self.depth_estimator = DepthEstimator(
@@ -103,7 +104,48 @@ class SpacePointSearch(Consumer):
             print(f"Error getting Z coordinate: {e}")
             return None
 
+    def save_nth_frame(self, video_path, n, output_dir=None, prefix="frame"):
+        """
+        Save the nth frame from a video to an image file. Filename includes a datetime.
 
+        Args:
+            video_path (str): Path to the video file.
+            n (int): Zero-based frame index to save.
+            output_dir (str|None): Directory to save the image. If None, uses video's directory.
+            prefix (str): Prefix for the output filename.
+
+        Returns:
+            (bool, str|None): (True, saved_image_path) on success, (False, None) on failure.
+        """
+
+        if output_dir is None:
+            output_dir = os.path.dirname(video_path) or "."
+        os.makedirs(output_dir, exist_ok=True)
+
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            return (False, None)
+
+        try:
+            frame_index = int(n)
+            if frame_index < 0:
+                return (False, None)
+
+            # Seek to the requested frame and read
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+            ret, frame = cap.read()
+            if not ret or frame is None:
+                return (False, None)
+
+            # Build filename with datetime (UTC) including milliseconds
+            dt = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+            filename = f"{prefix}_frame{frame_index}_{dt}.jpg"
+            save_path = os.path.join(output_dir, filename)
+
+            ok = cv2.imwrite(save_path, frame)
+            return (True, save_path) if ok else (False, None)
+        finally:
+            cap.release()
 
     def annotate_coordinates_on_image_and_save(self, image_path, coordinates):
         # Dummy implementation for annotating coordinates on an image
@@ -138,6 +180,7 @@ class SpacePointSearch(Consumer):
                     messagebody["requestid"],
                     missingframestart,
                     missingframeend,
+                    videoid=messagebody["videoid"],
                 )
 
             return False
