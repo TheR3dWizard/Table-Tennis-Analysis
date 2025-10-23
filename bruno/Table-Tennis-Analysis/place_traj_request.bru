@@ -1,0 +1,32 @@
+meta {
+  name: Place TVD Request
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:6060/placerequest
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "request",
+    "requestid":"bruno-request-100",
+    "requesterid": "bruno-api-client",
+    "returnqueue": "default",
+    "targetid": "table-vertex-detection",
+    "columnslist": [
+      "ballxvector", 
+      "ballyvector", 
+      "ballzvector", 
+      "ballbounce"
+    ],
+    "returnmessageid": "bruno-test-message-100",
+    "startframeid": 134,
+    "endframeid": 139,
+    "frameid": 197,
+    "videoid": 1
+  }
+}
