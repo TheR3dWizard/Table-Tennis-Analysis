@@ -39,19 +39,19 @@ class PlayerHeatmapConsumer(Consumer):
         self.joinserver()
 
     def saveresult(self, videoId, resultMap):
-        print("Executing saveresult....")
+        self.newprint("Executing saveresult....")
         response = requests.post(
             f"{self.server}/update-player-coordinates",
             json={"videoId": videoId, "both_player_coords_map": resultMap},
         )
         if response.status_code == 200:
-            print("Player coordinates updated successfully.")
+            self.newprint("Player coordinates updated successfully.")
         else:
-            print(f"Failed to update player coordinates: {response.json()}")
+            self.newprint(f"Failed to update player coordinates: {response.json()}")
         return response.json()
 
     def logicfunction(self, messagebody):
-        print(f"Processing message: {messagebody}")
+        self.newprint(f"Processing message: {messagebody}")
         videopath = (
             requests.get(
                 f"{self.server}/get-video-path-against-id",
@@ -60,7 +60,7 @@ class PlayerHeatmapConsumer(Consumer):
             .json()
             .get("videoPath", Constants.DEFAULT_VIDEO_PATH)
         )
-        print(f"Video path retrieved: {videopath}")
+        self.newprint(f"Video path retrieved: {videopath}")
         framedatamap, heatmapimagepath = analyze_video(
             video=videopath if videopath else Constants.HEATMAP_DEFAULT_VIDEO,
             start_frame=messagebody.get("startframeid", 0),
@@ -79,7 +79,7 @@ class PlayerHeatmapConsumer(Consumer):
         # Save results to the database
         self.saveresult(messagebody["videoid"], framedatamap)
         pprint.pprint(framedatamap)
-        print(f"Heatmap image saved at: {heatmapimagepath}")
+        self.newprint(f"Heatmap image saved at: {heatmapimagepath}")
 
         return True
 
