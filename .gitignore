@@ -11,6 +11,16 @@
 *.yaml
 *.json
 *.mp4
+*.yaml
+*.cache
+*.csv
+*.txt
+*.npy
+*.txt
+*.cache
+*.yaml
+*.pt
+*.csv
 Datasets/Dataset/game1/Clip1/0000.jpg
 Datasets/Dataset/game1/Clip10/Label.csv
 # Datasets/OpenTT/game_1/segmentation_masks/17.png
@@ -21,4 +31,9 @@ pw1
 **/__pycache__/
 *.pt
 outputs/
+Ball Detection/filtered_datasets/*
+*.txt
+*.yaml
+*.csv
 .idea/
+*.pt

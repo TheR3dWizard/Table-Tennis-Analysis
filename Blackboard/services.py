@@ -1,6 +1,7 @@
 import urllib.parse
 import psycopg2
 import pika
+from constants import Constants
 
 
 class RabbitMQService:
@@ -78,7 +79,6 @@ class PostgresService:
         self.connection = None
         self.VIDEO_TABLE_NAME = "video_data"
 
-
     def encode_filepath(self, filepath):
         """
         Encodes a file path into a browser-friendly version (URL encoding).
@@ -127,8 +127,10 @@ class PostgresService:
                 return None
             colnames = [desc[0] for desc in cursor.description]
             return dict(zip(colnames, row))
-    
-    def add_video_data(self, videoid_value, videopath_value, videoname_value="", videotag_value=""):
+
+    def add_video_data(
+        self, videoid_value, videopath_value, videoname_value="", videotag_value=""
+    ):
         if not self.connection:
             self.connect()
         with self.connection.cursor() as cursor:
@@ -157,7 +159,7 @@ class PostgresService:
                 (heatmapvideopath_value, videoid_value),
             )
             self.connection.commit()
-    
+
     def add_dotmatrix_video_data(self, videoid_value, dotmatrixvideopath_value):
         if not self.connection:
             self.connect()
@@ -173,7 +175,7 @@ class PostgresService:
             )
             self.connection.commit()
 
-    def get_columns_and_values_by_frameid(self, frameid_value):
+    def get_columns_and_values_by_frameid(self, frameid_value, videoid_value=1):
         if not self.connection:
             self.connect()
         with self.connection.cursor() as cursor:
@@ -181,9 +183,9 @@ class PostgresService:
                 f"""
                 SELECT *
                 FROM {self.table}
-                WHERE frameId = %s
+                WHERE frameId = %s AND videoId = %s
             """,
-                (frameid_value,),
+                (frameid_value, videoid_value),
             )
             row = cursor.fetchone()
             if row is None:
@@ -218,20 +220,55 @@ class PostgresService:
                     )
             self.connection.commit()
 
-
-    def set_column_value_by_frameid(self, column_name, value, frameid_value, videoid_value):
-            if not self.connection:
-                self.connect()
-            with self.connection.cursor() as cursor:
-                command = f"UPDATE {self.table} SET {column_name} = %s WHERE frameId = %s AND videoId = %s"
-                cursor.execute(command, (value, frameid_value, videoid_value))
-                self.connection.commit()
-                # Return the number of rows affected
-                return cursor.rowcount > 0
+    def set_column_value_by_frameid(
+        self, column_name, value, frameid_value, videoid_value
+    ):
+        if not self.connection:
+            self.connect()
+        with self.connection.cursor() as cursor:
+            command = f"UPDATE {self.table} SET {column_name} = %s WHERE frameId = %s AND videoId = %s"
+            cursor.execute(command, (value, frameid_value, videoid_value))
+            self.connection.commit()
+            # Return the number of rows affected
+            return cursor.rowcount > 0
 
     def close(self):
         if self.connection:
             self.connection.close()
+
+
+class HelperFunctions:
+    def __init__(self):
+        pass
+
+    def frame_timestamp_converter(
+        video_fps: float, n: int = None, timestamp: float = None
+    ):
+        """
+        Convert between nth frame and timestamp for a video with millisecond-level accuracy.
+
+        Args:
+            video_fps (float): Frames per second (FPS) of the video.
+            n (int, optional): Frame number (starting from 0).
+            timestamp (float, optional): Timestamp in seconds.
+
+        Returns:
+            float | int: Corresponding timestamp (if frame provided) or frame number (if timestamp provided).
+
+        Raises:
+            ValueError: If neither or both 'n' and 'timestamp' are provided.
+        """
+        if (n is None and timestamp is None) or (
+            n is not None and timestamp is not None
+        ):
+            raise ValueError("Provide exactly one of 'n' or 'timestamp'.")
+
+        if n is not None:
+            # Millisecond-accurate conversion from frame to timestamp
+            return round(n / video_fps, 3)
+
+        # Millisecond-accurate conversion from timestamp to frame
+        return int(round(timestamp * video_fps))
 
 
 if __name__ == "__main__":
@@ -240,5 +277,5 @@ if __name__ == "__main__":
     # rmqs.publish('Hello RabbitMQ!', queue='test2queue')
     # print(rmqs.getlastmessage(queue='testqueue'))
 
-    db = PostgresService("pw1tt", "securepostgrespassword")
+    db = PostgresService(Constants.POSTGRES_USERNAME, Constants.POSTGRES_PASSWORD)
     print(db.get_columns_and_values_by_frameid(16))

@@ -3,8 +3,8 @@ import csv
 import time
 
 # === CONFIG ===
-video_path = "game_1.mp4"
-output_csv = "annotations.csv"
+video_path = "/Users/pramo/Desktop/TT_Analysis/Table-Tennis-Analysis/Trajectory_Analysis/game_1.mp4"
+output_csv = "segments.csv"
 skip_seconds = 2
 instructions = "SPACE=pause/resume | s=start | e=end | a/←=back | d/→=fwd | q=quit"
 
