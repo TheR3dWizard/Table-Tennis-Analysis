@@ -77,7 +77,7 @@ class PostgresService:
         self.password = password
         self.table = "table_tennis_analysis"
         self.connection = None
-        self.VIDEO_TABLE_NAME = "video_data"
+        self.VIDEO_TABLE_NAME = "video_table"
 
     def encode_filepath(self, filepath):
         """
@@ -231,6 +231,22 @@ class PostgresService:
             self.connection.commit()
             # Return the number of rows affected
             return cursor.rowcount > 0
+
+    def insertbulkrows(self, videoid, frameid_start, number_of_rows):
+        if not self.connection:
+            self.connect()
+        with self.connection.cursor() as cursor:
+            for i in range(number_of_rows):
+                frameid_value = frameid_start + i
+                cursor.execute(
+                    f"""
+                    INSERT INTO {self.table} (videoId, frameId)
+                    VALUES (%s, %s)
+                    ON CONFLICT (videoId, frameId) DO NOTHING
+                """,
+                    (videoid, frameid_value),
+                )
+            self.connection.commit()
 
     def close(self):
         if self.connection:

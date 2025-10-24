@@ -209,16 +209,34 @@ def clear_queues():
 
 @app.route("/get-video-path-against-id", methods=["GET"])
 def get_video_path_against_id():
-    video_id = request.args.get("videoid")
+    video_id = request.args.get("videoId")
     if not video_id:
+        print("Missing 'videoid' in request")
         return jsonify(error="Missing 'videoid'"), 400
 
     video_path = db.get_video_path_by_videoid(video_id)
     if not video_path:
+        print(f"Video path not found for videoid {video_id}")
         return jsonify(error=f"Video path not found for videoid {video_id}"), 404
 
     return jsonify(videoPath=video_path)
 
+@app.route("/insert-bulk-rows", methods=["POST"])
+def insert_bulk_rows():
+    data = request.json
+    if not data:
+        return jsonify(error="Missing JSON body"), 400
+
+    videoid = data.get("videoid")
+    framestart = data.get("framestart")
+    numberofrows = data.get("numberofrows")
+
+    if videoid is None or framestart is None or numberofrows is None:
+        return jsonify(error="Missing 'videoid', 'framestart', or 'numberofrows'"), 400
+    inserted = db.insertbulkrows(videoid, framestart, numberofrows)
+    # if not inserted:
+    #     return jsonify(error="Failed to insert bulk rows"), 500
+    return jsonify(message=f"Inserted {numberofrows} rows starting from frame {framestart} for videoid {videoid}"), 201
 
 @app.route("/upload-video", methods=["POST"])
 def upload_video():

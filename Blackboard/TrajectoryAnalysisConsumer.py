@@ -4,7 +4,7 @@ from constants import Constants
 from scipy.signal import savgol_filter
 from scipy.interpolate import interp1d
 from KalmanTRackerClass import KalmanTracker
-
+import numpy as np
 
 class TrajectoryAnalysisConsumer(Consumer):
     def __init__(
@@ -298,6 +298,7 @@ class TrajectoryAnalysisConsumer(Consumer):
         self,
         smoothed_positions,
         table_coords,
+        startframeid,
         proximity_threshold=15,
         min_velocity_change=0.5,
         segment_frames=None,
@@ -344,7 +345,8 @@ class TrajectoryAnalysisConsumer(Consumer):
                 if v_change >= min_velocity_change and i - last_bounce_frame > 3:
                     bounce_frames.append(segment_frames[i])
                     last_bounce_frame = i
-        return bounce_frames
+        shifted_bounce_frames = [bf for bf in bounce_frames]
+        return shifted_bounce_frames
 
     def logicfunction(self, messagebody):
         startframeid = messagebody.get("startframeid", 0)
@@ -445,6 +447,7 @@ class TrajectoryAnalysisConsumer(Consumer):
                 np.array(valid_interpolated_positions),
                 table_coordinates_data[startframeid],
                 segment_frames=valid_interpolated_frames,
+                startframeid=startframeid
             )
         else:
             bounceframes = []
