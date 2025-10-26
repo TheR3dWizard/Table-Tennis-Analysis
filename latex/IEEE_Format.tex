@@ -8,6 +8,7 @@
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{soul}
+\usepackage{multirow}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -158,7 +159,7 @@ Each player's positions form an occurrence grid normalized into a probability he
 The blackboard model of problem solving  has historically inspired architectures that separate memory, control, and expertise\cite{hanllm}. In modern contexts, this abstraction aligns closely with large language model (LLM)-driven multi-agent systems, which integrate blackboard structures with mixture-of-experts (MoE) mechanisms\cite{hanllm}
 
 \subsubsection{Workflow}
-A typical workflow begins with a control unit—itself often an LLM—that decides which specialized agents should act based on the current problem state. These agents contribute their reasoning outputs to a shared blackboard memory, ensuring all subsequent agents operate with the same holistic context. Iterations proceed until convergence, either through consensus or predefined termination conditions.\cite{hanllm}
+A typical workflow begins with a control unit (CU)—itself often an LLM—that decides which specialized agents should act based on the current problem state. These agents contribute their reasoning outputs to a shared blackboard memory, ensuring all subsequent agents operate with the same holistic context. Iterations proceed until convergence, either through consensus or predefined termination conditions.\cite{hanllm}
 
 \subsubsection{Models Used}
 Classical work by Jacobs et al. \cite{amoe} on adaptive mixtures of experts introduced the principle of dividing tasks among specialized models and dynamically weighting their outputs. This idea later scaled into architectures like the sparsely-gated MoE layer \cite{omoe}, which improved efficiency in extremely large neural networks. Recent surveys \cite{smoe} highlight how MoE structures support LLM scalability, while Han \& Zhang [14] demonstrated how coupling them with blackboard coordination improves multi-agent reasoning efficiency.
@@ -170,7 +171,7 @@ Thus, modern blackboard-based LLM multi-agent systems (bMAS) \cite{hanllm} embod
 The blackboard-based LLM Multi-Agent System (bMAS) integrates the classical blackboard architecture \cite{nii1986blackboard} into LLM-driven multi-agent systems. By coordinating agents through a shared information space and adaptive scheduling, it avoids rigid workflows and inefficiencies. Its initial implementation, LbMAS, exhibits strong scalability and efficiency \cite{hanllm}.
 
 \subsubsection{Workflow}
-The blackboard-based LLM multi-agent system (bMAS) follows an iterative cycle of agent collaboration orchestrated by a control unit \cite{nii1986blackboard}. Each problem-solving session begins with agent generation, where expert roles relevant to the query are instantiated. The control unit then selects appropriate agents and supplies them with the blackboard content. Agents interpret this shared memory, contribute their outputs back to the blackboard, and the process continues until a stopping condition---consensus, a decider’s output, or maximum rounds---is achieved \cite{hanllm}.  
+The blackboard-based LLM multi-agent system (bMAS) follows an iterative cycle of agent collaboration orchestrated by a CU \cite{nii1986blackboard}. Each problem-solving session begins with agent generation, where expert roles relevant to the query are instantiated. The CU then selects appropriate agents and supplies them with the blackboard content. Agents interpret this shared memory, contribute their outputs back to the blackboard, and the process continues until a stopping condition---consensus, a decider’s output, or maximum rounds---is achieved \cite{hanllm}.  
 
 \subsubsection{Models Used}
 The model is structured around three core components: control unit, blackboard, and LLM-based agents. The control unit, often an LLM itself, decides which agents are relevant at a given stage \cite{hanllm}, thus ensuring efficiency and reducing token consumption. The blackboard functions as shared memory, compartmentalized into public and private spaces, where agents record, debate, and refine their outputs \cite{nii1986blackboard}.  
@@ -184,11 +185,12 @@ Recent works in sports video analysis highlight how deep learning can be tailore
 \section{System Design Architecture}
 \begin{figure}
     \centering
-    \includegraphics[width=1\linewidth]{overall-architecture.jpeg}
+    \includegraphics[width=1\linewidth]{overall-architecture.png}
     \caption{Overall System Architecture Diagram}
     \label{fig:placeholder}
 \end{figure}
 We propose to incorporate the Blackboard Architecture (BA) into multi-agent systems (MASs) so that (1) agents with various roles can share all the information and other's messages during the whole problem-solving process, (2) agents that will take actions are selected based on the current content of the blackboard. 
+
 This architecture allows more than just persistent memory storage and sequential function call. It enables a complex task 
 solving strategy allowing different knowledge sources to communicate by the means of a common information field. 
 We develop the first implementation of this proposal and conduct experiments on \hl{<>}. The results show that our system can be \hl{<>}
@@ -197,21 +199,173 @@ The overall system architecture / workflow is illustrated in Figure 1.
 As far back as in the 80’s of the last century, the BA was proposed \hl{(Nii, 1986; Hayes-Roth, 1985)} as a decentralized problem solving approach that imitates a group of human experts working together around a shared blackboard and each contributing her/his own solutions to the blackboard until a collective decision is reached. 
 Blackboard Architecture helps a Multi-Agent System (MAS) to utilize collective intelligence to further enhance problem solving performances. 
 Such a timely, iterated process enables a dynamic adaptation of collaboration mechanism among agents.
+
 We intend to incorporate the BA into the \hl{Table Tennis} MAS and propose the blackboard-based LLM multi-agent system (bMAS) in \hl{this paper}
 \subsection{Core Components}
-The BA itself relies on three core components: (1) Knowledge Sources (2) Blackboard (3) Control Unit. Information from the Knowledge Sources are stored on the Blackboard and are being subsequently reused by other Knowledge Sources to iteratively approach a solution. 
+The BA itself relies on four core components: (1) Blackboard (2) Knowledge Source (3) Communication Interface (4) Control Unit (CU). Information from the Knowledge Sources are stored on the Blackboard and are being subsequently reused by other Knowledge Sources to iteratively approach a solution. 
 \subsubsection{Blackboard}
-content
+The blackboard acts as a central, global data structure accessible by all modules (“knowledge sources”).
+Each module posts intermediate or final results to the blackboard and reacts to changes made by other modules.
+Communication and coordination are achieved indirectly by reading and writing to this shared resource, not through direct inter-module calls.
+
+We have implemented the blackboard as different tables in a Relational Database (Postgres) for production grade data storage for relational data with faster retrievals and consistent read write operations.
+
+The central database schema (see Tables I–VI) functions as the blackboard in our blackboard architecture implementation. 
+All agents post their intermediate states, detected events, and final results solely into this schema, which defines the evolving solution space. 
+This “single source of truth” approach ensures consistency, repeatability, and modularity: modules communicate solely through the blackboard and remain decoupled, except via well-defined database reads/writes. 
+
+This aligns with classical blackboard systems, where the shared data structure orchestrates expert contributions and manages overall task progression.
+
+% Table 1: table_tennis_analysis
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{table\_tennis\_analysis}}
+    \label{tab:ttanalysis}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column}        & \textbf{Type}    & \textbf{Description} \\
+        \hline
+        videoId                & INTEGER         & Unique video identifier \\
+        frameId                & INTEGER         & Frame number within video \\
+        frameAction            & VARCHAR         & Action detected in frame \\
+        tableid                & INTEGER         & Table reference \\
+        ballvisibility         & BOOLEAN         & Is ball visible? \\
+        ballid                 & INTEGER         & Ball reference \\
+        depthMapPath           & VARCHAR         & Path to depth map file \\
+        ballbounce             & BOOLEAN         & Ball bounce event \\
+        remarks                & VARCHAR         & Additional comments \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 2: table_coords
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{table\_coords}}
+    \label{tab:tablecoords}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column} & \textbf{Type} & \textbf{Description} \\
+        \hline
+        tableid   & INTEGER & Table identifier \\
+        tablex1   & FLOAT   & \multirow{8}{*}{Table coordinates} \\
+        tabley1   & FLOAT   &  \\
+        tablex2   & FLOAT   &  \\
+        tabley2   & FLOAT   &  \\
+        tablex3   & FLOAT   &  \\
+        tabley3   & FLOAT   &  \\
+        tablex4   & FLOAT   &  \\
+        tabley4   & FLOAT   &  \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 3: ball_data
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{ball\_data}}
+    \label{tab:balldata}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column} & \textbf{Type} & \textbf{Description} \\
+        \hline
+        ballId          & INTEGER       & Ball identifier \\
+        ballx           & FLOAT         &  \\
+        bally           & FLOAT         & Ball Position \\
+        ballz           & FLOAT         &  \\
+        ballxvector     & FLOAT         &  \\
+        ballyvector     & FLOAT         & Ball Velocity \\
+        ballzvector     & FLOAT         &  \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 4: player_positions
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{player\_positions}}
+    \label{tab:playerpositions}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column} & \textbf{Type} & \textbf{Description} \\
+        \hline
+        playerid        & INTEGER       & Player identifier \\
+        playerx         & FLOAT         & \\
+        playery         & FLOAT         & Player position \\
+        playerz         & FLOAT         & \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 5: bounces
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{bounces}}
+    \label{tab:bounces}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column} & \textbf{Type} & \textbf{Description} \\
+        \hline
+        frameId         & INTEGER       & Frame identifier for bounce event \\
+        ballId          & INTEGER       & Ball identifier for bounce event \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 6: video_table
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{video\_table}}
+    \label{tab:videotable}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column}           & \textbf{Type}    & \textbf{Description} \\
+        \hline
+        videoId                   & INTEGER         & Video identifier \\
+        videoPath                 & VARCHAR         & Path to video file \\
+        videoName                 & VARCHAR         & Name of video \\
+        videoTag                  & VARCHAR         & Custom video tag/label \\
+        fullvideoHeatmapPath      & VARCHAR         & Path to video heatmap \\
+        videoDotMatrixSource      & VARCHAR         & Path/source for dot matrix map \\
+        \hline
+    \end{tabular}
+\end{table}
+
+
 \begin{figure}
     \centering
-    \includegraphics[width=1\linewidth]{blackboard-class-diagram.jpeg}
-    \caption{Blackboard Class Diagram}
+    \includegraphics[width=1\linewidth]{Component Interaction Diagram.png}
+    \caption{Component Interaction Diagram. Abbreviation: MC = Message Callback; MQTT = Message Queuing Telemetry Transport;}
     \label{fig:placeholder}
 \end{figure}
 \subsubsection{Knowledge Sources}
-content
-\subsubsection{Publish Subscribe Model}
-content
+The knowledge source is any set of functions that take some input and generate a result that brings the entire system one step closer to the solution. The input can either be raw data or an output of another knowledge source.
+Each knowledge source ideally has a very specific set of skills that does not overlap with another.
+The individual agents in our system, namely (1) Table Vertex Detection (2) Ball Position Detection (3) Player Heatmap Generation (4) Space Point Estimator and (5) Trajectory Analysis are the knowledge sources. 
+These knowledge sources have been programmatically implemented as objects of their own classes, which are extended from an abstract class which has been illustrated in Figure 3.
+We believe that this approach will contribute to the versatility, diversity and generality of agent introduction at scale.
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Class Diagram.png}
+    \caption{Class Diagram}
+    \label{fig:placeholder}
+\end{figure}
+\subsubsection{Communication Interface}
+The Communication Interface handles the communication between the knowledge sources and is based on the Publish Subscribe Model. This very model is the backbone behind BA, allowing agents share findings and results. 
+We have implemented a Pub-Sub Model using RabbitMQ, an open-source message broker that enables reliable, asynchronous communication between distributed applications by queuing, routing, and delivering messages. Every knowledge source listens for tasks (messages) in a predefined queue and defines a \textit{callback-function}. 
+
+CU places message on the appropriate queue, on behalf of agents, based on the skill required. Agents are triggered using the callback function when their queue gets a message. These agents perform requested operations on the blackboard and send a success message upon completion. 
+
+\subsubsection{Control Unit}
+The knowledge models are loosely coupled via task delegation to the CU. When the ball tracking model requires table coordinates, it submits the request to the CU, without needing awareness of which agent holds or computes this data. 
+Since the CU is preconfigured with the list of knowledge sources, their skill sets, the IDs of the queue that they are listening to, it dynamically resolves and forwards this request to the appropriate agent, which processes and returns the result. 
+
+This approach enables modularity and scalability by decoupling task requesters from the concrete implementers, following the orchestrator-worker pattern commonly employed in multi-agent and event-driven distributed systems
+
+To enhance versatility and support dynamic integration of knowledge sources (agents), the control unit is designed to automatically extract and register the skill set and message queue information of each new consumer as it connects. 
+
+This mechanism enables seamless discovery and on-the-fly integration of new capabilities, without requiring manual configuration or prior knowledge of the agent’s skills. As a result, the control unit serves as a dynamic registry, ensuring efficient routing of tasks based on updated agent capabilities as soon as they are available
+
 \subsection{Component Description}
 content
 \subsubsection{Table Vertex Detection}
