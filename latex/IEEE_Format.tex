@@ -7,6 +7,8 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{soul}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -180,13 +182,32 @@ The agents themselves perform specialized roles like problem decomposition, eval
 Recent works in sports video analysis highlight how deep learning can be tailored to different game contexts. Giancola et al. (2024) addressed the challenge of action spotting in football videos by building models capable of automatically identifying temporal segments corresponding to key events, showing how large-scale video understanding can reduce reliance on manual annotations \cite{giancola}. Similarly, Voeikov et al. (2020) proposed TTNet for table tennis, a real-time framework that jointly captures temporal and spatial cues to recognize strokes and track the ball with high precision \cite{ttnet}. Together, these approaches emphasize that event localization and fine-grained spatiotemporal modeling are critical for table tennis analysis, where both rapid ball motion and subtle player actions must be detected reliably.
 
 \section{System Design Architecture}
-Say it uses BlackBoard model
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{overall-architecture.jpeg}
+    \caption{Overall System Architecture Diagram}
+    \label{fig:placeholder}
+\end{figure}
+We propose to incorporate the Blackboard Architecture (BA) into multi-agent systems (MASs) so that (1) agents with various roles can share all the information and other's messages during the whole problem-solving process, (2) agents that will take actions are selected based on the current content of the blackboard. 
+This architecture allows more than just persistent memory storage and sequential function call. It enables a complex task 
+solving strategy allowing different knowledge sources to communicate by the means of a common information field. 
+We develop the first implementation of this proposal and conduct experiments on \hl{<>}. The results show that our system can be \hl{<>}
+The overall system architecture / workflow is illustrated in Figure 1.
 \subsection{Overview and Motivation}
-content
+As far back as in the 80’s of the last century, the BA was proposed \hl{(Nii, 1986; Hayes-Roth, 1985)} as a decentralized problem solving approach that imitates a group of human experts working together around a shared blackboard and each contributing her/his own solutions to the blackboard until a collective decision is reached. 
+Blackboard Architecture helps a Multi-Agent System (MAS) to utilize collective intelligence to further enhance problem solving performances. 
+Such a timely, iterated process enables a dynamic adaptation of collaboration mechanism among agents.
+We intend to incorporate the BA into the \hl{Table Tennis} MAS and propose the blackboard-based LLM multi-agent system (bMAS) in \hl{this paper}
 \subsection{Core Components}
-content
+The BA itself relies on three core components: (1) Knowledge Sources (2) Blackboard (3) Control Unit. Information from the Knowledge Sources are stored on the Blackboard and are being subsequently reused by other Knowledge Sources to iteratively approach a solution. 
 \subsubsection{Blackboard}
 content
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{blackboard-class-diagram.jpeg}
+    \caption{Blackboard Class Diagram}
+    \label{fig:placeholder}
+\end{figure}
 \subsubsection{Knowledge Sources}
 content
 \subsubsection{Publish Subscribe Model}
@@ -235,7 +256,16 @@ copy& More table copy$^{\mathrm{a}}$& &  \\
 % \label{fig}
 % \end{figure}
 \section{Future Work}
-content
+The MASs proposed here so far utilizes fixed architectures with pre-defined agent roles and collaboration mechanisms, which often requires manual construction and thus lack generality.
+Some recent studies develop dynamic MASs (Hu et al., 2025; Zhang et al., 2025d; Shang et al., 2025; Liu et al., 2024a; Zhang et 
+al., 2025a), also called autonomous MASs, which configure structures and communication strategies based on tasks
+and environment feedbacks. Such MASs are modularized and the optimized MAS configurations
+are searched in specified spaces. Compared with
+fixed MASs, they often have an additional, time consuming training step and the simplified search
+spaces cannot cover all kinds of collaboration architectures. These two-step approaches essentially use
+fixed collaboration mechanisms in problem solving
+obtained from the supervised training based on a
+small number of samples in the first step.
 \section{Acknowledgement}
 content
 \bibliographystyle{plain} % or 'unsrt', 'abbrv', etc.
