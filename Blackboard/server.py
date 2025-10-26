@@ -221,6 +221,7 @@ def get_video_path_against_id():
 
     return jsonify(videoPath=video_path)
 
+
 @app.route("/insert-bulk-rows", methods=["POST"])
 def insert_bulk_rows():
     data = request.json
@@ -236,7 +237,13 @@ def insert_bulk_rows():
     inserted = db.insertbulkrows(videoid, framestart, numberofrows)
     # if not inserted:
     #     return jsonify(error="Failed to insert bulk rows"), 500
-    return jsonify(message=f"Inserted {numberofrows} rows starting from frame {framestart} for videoid {videoid}"), 201
+    return (
+        jsonify(
+            message=f"Inserted {numberofrows} rows starting from frame {framestart} for videoid {videoid}"
+        ),
+        201,
+    )
+
 
 @app.route("/upload-video", methods=["POST"])
 def upload_video():

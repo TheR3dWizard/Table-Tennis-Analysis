@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 from KalmanTRackerClass import KalmanTracker
 import numpy as np
 
+
 class TrajectoryAnalysisConsumer(Consumer):
     def __init__(
         self,
@@ -447,7 +448,7 @@ class TrajectoryAnalysisConsumer(Consumer):
                 np.array(valid_interpolated_positions),
                 table_coordinates_data[startframeid],
                 segment_frames=valid_interpolated_frames,
-                startframeid=startframeid
+                startframeid=startframeid,
             )
         else:
             bounceframes = []
