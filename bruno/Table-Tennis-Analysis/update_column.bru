@@ -1,0 +1,21 @@
+meta {
+  name: Update Column
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:6060/updatecolumn
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "frameid": 137,
+    "column": "ballx",
+    "value": 512
+  }
+}
+
+

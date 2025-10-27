@@ -23,3 +23,4 @@ pw1
 *.pt
 outputs/
 Ball Detection/filtered_datasets/*
+.idea/

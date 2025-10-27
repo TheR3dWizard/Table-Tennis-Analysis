@@ -1,0 +1,36 @@
+meta {
+  name: Place HMP Request
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:6060/placerequest
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "request",
+    "requestid":"bruno-request-100",
+    "requesterid": "bruno-api-client",
+    "returnqueue": "default",
+    "targetid": "table-vertex-detection",
+    "columnslist": [
+      "tablex1",
+      "tabley1",
+      "tablex2",
+      "tabley2",
+      "tablex3",
+      "tabley3",
+      "tablex4",
+      "tabley4"
+    ],
+    "returnmessageid": "bruno-test-message-100",
+    "startframeid": 101,
+    "endframeid": 104,
+    "frameid": 197,
+    "videoid": 1
+  }
+}
