@@ -6,7 +6,8 @@ CREATE TABLE table_tennis_analysis (
     ballvisibility BOOLEAN,
     ballid INTEGER,
     depthMapPath VARCHAR,
-    ballbounce BOOLEAN,
+    player1id INTEGER,
+    player2id INTEGER,
     remarks VARCHAR,
     PRIMARY KEY (videoId, frameId)
 );
