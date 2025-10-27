@@ -1,12 +1,11 @@
 import requests
 from ConsumerClass import Consumer
-import random
 from constants import Constants
-from ultralytics import YOLO
-import cv2
-import torch
-import json 
-import pprint
+from scipy.signal import savgol_filter
+from scipy.interpolate import interp1d
+from KalmanTRackerClass import KalmanTracker
+import numpy as np
+
 
 class TrajectoryAnalysisConsumer(Consumer):
     def __init__(
@@ -49,7 +48,7 @@ class TrajectoryAnalysisConsumer(Consumer):
             "bally",
         ]
         self.joinserver()
-    
+
     def groupframesintoranges(self, lst):
         # convert a list of integer frame ids into ranges whereever possible
         # example: [1,2,3,5,6,8] -> [(1,3),(5,6),(8)]
@@ -82,8 +81,8 @@ class TrajectoryAnalysisConsumer(Consumer):
                 json={
                     "frameid": frameid,
                     "columns": self.tablecoordinatescolumns,
-                    "videoid": videoid
-                }
+                    "videoid": videoid,
+                },
             )
             data = response.json()
             if response.status_code == 404 or not data:
@@ -96,10 +95,16 @@ class TrajectoryAnalysisConsumer(Consumer):
                         data[column] = None
                 returnmap[frameid] = data
             else:
-                raise Exception(f"Failed to get table coordinates for frame {frameid}: {response.json()}")
+                raise Exception(
+                    f"Failed to get table coordinates for frame {frameid}: {response.json()}"
+                )
 
-        return (True, returnmap) if not missingframes else (False, self.groupframesintoranges(missingframes))
-    
+        return (
+            (True, returnmap)
+            if not missingframes
+            else (False, self.groupframesintoranges(missingframes))
+        )
+
     def getballcoordinates(self, startframeid, endframeid, videoid):
         returnmap = dict()
         missingframes = []
@@ -109,8 +114,8 @@ class TrajectoryAnalysisConsumer(Consumer):
                 json={
                     "frameid": frameid,
                     "columns": self.ballcoordinatescolumns,
-                    "videoid": videoid
-                }
+                    "videoid": videoid,
+                },
             )
             data = response.json()
             if response.status_code == 404 or not data:
@@ -122,65 +127,348 @@ class TrajectoryAnalysisConsumer(Consumer):
                         data[column] = None
                 returnmap[frameid] = data
             else:
-                raise Exception(f"Failed to get ball coordinates for frame {frameid}: {response.json()}")
+                raise Exception(
+                    f"Failed to get ball coordinates for frame {frameid}: {response.json()}"
+                )
 
-        return (True, returnmap) if not missingframes else (False, self.groupframesintoranges(missingframes))
+        return (
+            (True, returnmap)
+            if not missingframes
+            else (False, self.groupframesintoranges(missingframes))
+        )
+
+    def interpolate_missing_frames(
+        self,
+        segment_frames,
+        segment_positions,
+        valid_frames,
+        valid_positions,
+        max_gap=5,
+    ):
+        """Interpolate missing frames using cubic spline if enough points available."""
+
+        if len(valid_positions) < 4:
+            print("Warning: Less than 4 valid points, skipping interpolation")
+            return segment_positions
+
+        # Convert valid_positions to numpy array to ensure consistent indexing
+        valid_positions_array = np.array(valid_positions)
+
+        interp_x = interp1d(
+            valid_frames,
+            valid_positions_array[:, 0],
+            kind="cubic",
+            bounds_error=False,
+            fill_value="extrapolate",
+        )
+        interp_y = interp1d(
+            valid_frames,
+            valid_positions_array[:, 1],
+            kind="cubic",
+            bounds_error=False,
+            fill_value="extrapolate",
+        )
+
+        interpolated_positions = segment_positions.copy()
+        interpolated_count = 0
+
+        for i, frame_num in enumerate(segment_frames):
+            if segment_positions[i] is None:
+                prev_valid = None
+                next_valid = None
+
+                for j in range(i - 1, -1, -1):
+                    if segment_positions[j] is not None:
+                        prev_valid = segment_frames[j]
+                        break
+
+                for j in range(i + 1, len(segment_frames)):
+                    if segment_positions[j] is not None:
+                        next_valid = segment_frames[j]
+                        break
+
+                if prev_valid is not None and next_valid is not None:
+                    if (next_valid - prev_valid) <= max_gap:
+                        x_interp = float(interp_x(frame_num))
+                        y_interp = float(interp_y(frame_num))
+                        interpolated_positions[i] = [x_interp, y_interp]
+                        interpolated_count += 1
+
+        return interpolated_positions
+
+    def smooth_trajectory_kalman(
+        self, segment_frames, interpolated_positions, valid_positions
+    ):
+        """Apply Kalman filtering for trajectory smoothing."""
+
+        tracker = KalmanTracker()
+        # print("Kalman tracker initialized")
+
+        first_valid_pos = next(pos for pos in interpolated_positions if pos is not None)
+        tracker.state[:2] = first_valid_pos
+        # print(f"Set initial position: x={first_valid_pos[0]:.2f}, y={first_valid_pos[1]:.2f}")
+
+        if len(valid_positions) >= 2:
+            valid_indices = [
+                i for i, pos in enumerate(interpolated_positions) if pos is not None
+            ]
+            if len(valid_indices) >= 2:
+                pos1 = interpolated_positions[valid_indices[0]]
+                pos2 = interpolated_positions[valid_indices[1]]
+                dt_frames = (
+                    segment_frames[valid_indices[1]] - segment_frames[valid_indices[0]]
+                )
+                # Protect against division by zero
+                if dt_frames > 0:
+                    vx_init = (pos2[0] - pos1[0]) / dt_frames
+                    vy_init = (pos2[1] - pos1[1]) / dt_frames
+                    tracker.state[2:] = [vx_init, vy_init]
+                    # print(f"Set initial velocity: vx={vx_init:.2f}, vy={vy_init:.2f}")
+
+        for i, pos in enumerate(interpolated_positions):
+            measurement = np.array(pos) if pos is not None else None
+            tracker.predict()
+            tracker.update(measurement)
+
+        smoothed_positions = np.array(tracker.history)
+        confidence_scores = tracker.confidence
+        # print(f"Generated {len(smoothed_positions)} smoothed positions")
+
+        if len(smoothed_positions) >= 7:
+            window_length = min(7, len(smoothed_positions))
+            if window_length % 2 == 0:
+                window_length -= 1
+            # print(f"Applying Savitzky-Golay filter with window length {window_length}")
+            if window_length >= 3:
+                smoothed_positions[:, 0] = savgol_filter(
+                    smoothed_positions[:, 0], window_length=window_length, polyorder=2
+                )
+                smoothed_positions[:, 1] = savgol_filter(
+                    smoothed_positions[:, 1], window_length=window_length, polyorder=2
+                )
+                # print("Savitzky-Golay filter applied to smooth trajectory")
+
+        return smoothed_positions, confidence_scores
+
+    def correct_bounces_with_table(self, smoothed_positions, table_coords):
+        """Corrects the trajectory by aligning suspected bounce points with the table's y-coordinates."""
+        corrected_positions = smoothed_positions.copy()
+
+        # extract y-coordinates correctly from table_coords dict
+        top_y = min(
+            table_coords["tabley1"],
+            table_coords["tabley2"],
+            table_coords["tabley3"],
+            table_coords["tabley4"],
+        )
+        bottom_y = max(
+            table_coords["tabley1"],
+            table_coords["tabley2"],
+            table_coords["tabley3"],
+            table_coords["tabley4"],
+        )
+        # print(f"Table coordinates: top_y={top_y}, bottom_y={bottom_y}")
+
+        if len(corrected_positions) < 3:
+            # print("Too few positions to correct bounces, returning unchanged")
+            return corrected_positions
+
+        vy = np.gradient(corrected_positions[:, 1])
+        bounce_count = 0
+
+        for i in range(1, len(corrected_positions) - 1):
+            if vy[i - 1] * vy[i + 1] < 0:
+                if (
+                    abs(corrected_positions[i, 1] - top_y) < 15
+                    or abs(corrected_positions[i, 1] - bottom_y) < 15
+                ):
+                    if abs(corrected_positions[i, 1] - top_y) < abs(
+                        corrected_positions[i, 1] - bottom_y
+                    ):
+                        corrected_positions[i, 1] = top_y
+                        # print(f"Corrected bounce at frame {i} to table top (y={top_y})")
+                    else:
+                        corrected_positions[i, 1] = bottom_y
+                        # print(f"Corrected bounce at frame {i} to table bottom (y={bottom_y})")
+                    bounce_count += 1
+
+        # print(f"Corrected {bounce_count} bounce points")
+        return corrected_positions
+
+    def detect_bounce_points(
+        self,
+        smoothed_positions,
+        table_coords,
+        startframeid,
+        proximity_threshold=15,
+        min_velocity_change=0.5,
+        segment_frames=None,
+    ):
+        """
+        Detect bounce points and return only frame IDs in bounceframes format: [frameid1, frameid2, ...]
+        """
+        if len(smoothed_positions) < 5:
+            return []
+        y = smoothed_positions[:, 1]
+        vy = np.gradient(y)
+
+        # extract y-coordinates correctly from table_coords dict
+        top_y = min(
+            table_coords["tabley1"],
+            table_coords["tabley2"],
+            table_coords["tabley3"],
+            table_coords["tabley4"],
+        )
+        bottom_y = max(
+            table_coords["tabley1"],
+            table_coords["tabley2"],
+            table_coords["tabley3"],
+            table_coords["tabley4"],
+        )
+
+        bounce_frames = []
+        last_bounce_frame = -999
+        # Default: segment_frames = [start_frame, start_frame+1, ...]
+        if segment_frames is None or len(segment_frames) != len(y):
+            raise ValueError(
+                "segment_frames must be provided and match the length of smoothed_positions."
+            )
+
+        for i in range(2, len(y) - 2):
+            proximity_top = abs(y[i] - top_y) < proximity_threshold
+            proximity_bottom = abs(y[i] - bottom_y) < proximity_threshold
+            if (
+                (y[i] < y[i - 1])
+                and (y[i] < y[i + 1])
+                and (proximity_top or proximity_bottom)
+            ):
+                v_change = abs(vy[i - 1] - vy[i + 1])
+                if v_change >= min_velocity_change and i - last_bounce_frame > 3:
+                    bounce_frames.append(segment_frames[i])
+                    last_bounce_frame = i
+        shifted_bounce_frames = [bf for bf in bounce_frames]
+        return shifted_bounce_frames
 
     def logicfunction(self, messagebody):
         startframeid = messagebody.get("startframeid", 0)
         endframeid = messagebody.get("endframeid", 1000)
 
-        ball_coordinates_status, ball_coordinates_data = self.getballcoordinates(startframeid, endframeid, messagebody["videoid"])
-        table_coordinates_status, table_coordinates_data = self.gettablecoordinates(startframeid, endframeid, messagebody["videoid"])
+        ball_coordinates_status, ball_coordinates_data = self.getballcoordinates(
+            startframeid, endframeid, messagebody["videoid"]
+        )
+        table_coordinates_status, table_coordinates_data = self.gettablecoordinates(
+            startframeid, endframeid, messagebody["videoid"]
+        )
 
         if not ball_coordinates_status:
             print(f"Missing ball coordinates for frames: {ball_coordinates_data}")
             # TODO: Check if framestart and end being the same causes any issues downstream
-            for (missingframestart, missingframeend) in ball_coordinates_data:
-                self.placerequest(self.ballcoordinatescolumns, messagebody["requestid"], missingframestart, missingframeend)
+            for missingframestart, missingframeend in ball_coordinates_data:
+                self.placerequest(
+                    self.ballcoordinatescolumns,
+                    messagebody["requestid"],
+                    missingframestart,
+                    missingframeend,
+                    videoid=messagebody["videoid"],
+                )
 
             return False
-        
+
         if not table_coordinates_status:
             print(f"Missing table coordinates for frames: {table_coordinates_data}")
             # TODO: Check if framestart and end being the same causes any issues downstream
-            for (missingframestart, missingframeend) in table_coordinates_data:
-                self.placerequest(self.tablecoordinatescolumns, messagebody["requestid"], missingframestart, missingframeend)
+            for missingframestart, missingframeend in table_coordinates_data:
+                self.placerequest(
+                    self.tablecoordinatescolumns,
+                    messagebody["requestid"],
+                    missingframestart,
+                    missingframeend,
+                    videoid=messagebody["videoid"],
+                )
 
             return False
-        
-        interpolated_ball_positions = dict() # Replace with actual function call
-        '''
-        interpolated_ball_positions format:
-        {
-            "frameid1": {"ballx": x1, "bally": y1},
-            "frameid2": {"ballx": x2, "bally": y2},
-            ...
-        }
-        '''
 
-        ball_velocities = dict() # Replace with actual function call
-        '''
-        ball_velocities format:
-        {
-            "frameid1": {"ballxvector": vx1, "ballyvector": vy1},
-            "frameid2": {"ballxvector": vx2, "ballyvector": vy2},
-            ...
-        }
-        '''
+        segment_frames = list(range(startframeid, endframeid + 1))
+        segment_positions = []
+        valid_frames = []
+        valid_positions = []
+        for frame_id in segment_frames:
+            coords = ball_coordinates_data.get(frame_id)
+            if coords and coords["ballx"] is not None and coords["bally"] is not None:
+                seg = [coords["ballx"], coords["bally"]]
+                segment_positions.append(seg)
+                valid_frames.append(frame_id)
+                valid_positions.append(seg)
+            else:
+                segment_positions.append(None)
 
-        bounceframes = list() # Replace with actual function call
-        '''
+        interpolated_ball_positions = self.interpolate_missing_frames(
+            segment_frames, segment_positions, valid_frames, valid_positions, max_gap=5
+        )
+        # Convert interpolated_ball_positions (list of lists) to dict mapping frameid to {"ballx": ..., "bally": ...}
+        interpolated_ball_positions_dict = {}
+        for i, frame_id in enumerate(segment_frames):
+            pos = interpolated_ball_positions[i]
+            if pos is not None:
+                interpolated_ball_positions_dict[frame_id] = {
+                    "ballx": pos[0],
+                    "bally": pos[1],
+                }
+            else:
+                interpolated_ball_positions_dict[frame_id] = {
+                    "ballx": None,
+                    "bally": None,
+                }
+
+        smoothed_positions, confidence_scores = self.smooth_trajectory_kalman(
+            segment_frames, interpolated_ball_positions, valid_positions
+        )
+
+        ball_velocities = {}
+        if len(smoothed_positions) >= 2:
+            for i in range(1, len(smoothed_positions)):
+                vx = smoothed_positions[i][0] - smoothed_positions[i - 1][0]
+                vy = smoothed_positions[i][1] - smoothed_positions[i - 1][1]
+                frameid = segment_frames[i]
+                ball_velocities[frameid] = {"ballxvector": vx, "ballyvector": vy}
+        else:
+            for frame_id in segment_frames:
+                ball_velocities[frame_id] = {"ballxvector": 0.0, "ballyvector": 0.0}
+
+        valid_interpolated_positions = []
+        valid_interpolated_frames = []
+        for i, pos in enumerate(interpolated_ball_positions):
+            if pos is not None:
+                valid_interpolated_positions.append(pos)
+                valid_interpolated_frames.append(segment_frames[i])
+
+        # Convert to numpy array only if we have valid positions
+        if len(valid_interpolated_positions) > 0:
+            bounceframes = self.detect_bounce_points(
+                np.array(valid_interpolated_positions),
+                table_coordinates_data[startframeid],
+                segment_frames=valid_interpolated_frames,
+                startframeid=startframeid,
+            )
+        else:
+            bounceframes = []
+        """
         bounceframes format:
         [frameid1, frameid2, ...]
-        '''
+        """
 
+        self.saveresult(
+            interpolated_ball_positions_dict,
+            ball_velocities,
+            bounceframes,
+            messagebody["videoid"],
+        )
 
-        self.saveresult(interpolated_ball_positions, ball_velocities, bounceframes, messagebody["videoid"])
-        
         return True
 
-    def saveresult(self, interpolated_ball_positions, ball_velocities, bounceframes, videoId):
+    def saveresult(
+        self, interpolated_ball_positions, ball_velocities, bounceframes, videoId
+    ):
         # TODO: Combine all functions below into one function to reduce repetitive code
         self.saveballpositionresult(interpolated_ball_positions, videoId)
         self.saveballvelocityresult(ball_velocities, videoId)
@@ -197,13 +485,15 @@ class TrajectoryAnalysisConsumer(Consumer):
                         "frameid": int(frameid),
                         "column": column,
                         "value": float(value),  # Convert numpy float32 to Python float
-                        "videoid": videoId
-                    }
+                        "videoid": videoId,
+                    },
                 )
                 if response.status_code == 200:
                     print(f"Updated frame {frameid}, column {column} successfully.")
                 else:
-                    print(f"Failed to update frame {frameid}, column {column}: {response.json()}")
+                    print(
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}"
+                    )
 
     def saveballpositionresult(self, interpolated_ball_positions, videoId):
         print("Executing saveballpositionresult.... for ", videoId)
@@ -216,32 +506,42 @@ class TrajectoryAnalysisConsumer(Consumer):
                         "frameid": int(frameid),
                         "column": column,
                         "value": float(value),  # Convert numpy float32 to Python float
-                        "videoid": videoId
-                    }
+                        "videoid": videoId,
+                    },
                 )
                 if response.status_code == 200:
                     print(f"Updated frame {frameid}, column {column} successfully.")
                 else:
-                    print(f"Failed to update frame {frameid}, column {column}: {response.json()}")
-                
+                    print(
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}"
+                    )
+
     def saveballbounce(self, bounceframes, videoId):
         print("Executing saveballbounce.... for ", videoId)
-
         for frameid in bounceframes:
+            print("Updating bounce for frameid: ", frameid)
             response = requests.post(
                 f"{self.server}/updatecolumn",
                 json={
                     "frameid": int(frameid),
                     "column": "ballbounce",
                     "value": True,
-                    "videoid": videoId
-                }
+                    "videoid": videoId,
+                },
             )
             if response.status_code == 200:
                 print(f"Updated frame {frameid}, column ballbounce successfully.")
             else:
-                print(f"Failed to update frame {frameid}, column ballbounce: {response.json()}")
+                print(
+                    f"Failed to update frame {frameid}, column ballbounce: {response.json()}"
+                )
+        print("Finished updating ballbounce for all frames.")
+
 
 if __name__ == "__main__":
-    c1 = TrajectoryAnalysisConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="trajectory-analysis")
+    c1 = TrajectoryAnalysisConsumer(
+        rabbitmqusername=Constants.RABBITMQ_USERNAME,
+        rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+        id="trajectory-analysis",
+    )
     c1.threadstart()

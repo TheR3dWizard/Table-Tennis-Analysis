@@ -22,7 +22,7 @@ CREATE TABLE table_coords(
     tabley3 FLOAT,
     tablex4 FLOAT,
     tabley4 FLOAT
-)
+);
 
 CREATE TABLE ball_data(
     ballId INTEGER,
@@ -32,19 +32,19 @@ CREATE TABLE ball_data(
     ballxvector FLOAT,
     ballyvector FLOAT,
     ballzvector FLOAT
-)
+);
 
 CREATE TABLE player_positions(
     playerid INTEGER,
     playerx FLOAT,
     playery FLOAT,
     playerz FLOAT
-)
+);
 
 CREATE TABLE bounces(
     frameId INTEGER,
     ballId INTEGER
-)
+);
 
 CREATE TABLE video_table (
     videoId INTEGER,

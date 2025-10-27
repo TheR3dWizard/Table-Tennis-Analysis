@@ -4,7 +4,7 @@ import time
 
 # === CONFIG ===
 video_path = "game_1.mp4"
-output_csv = "point_annotations.csv"
+output_csv = "segment_demo.csv"
 skip_seconds = 2
 instructions = "SPACE=pause/resume | s=start | e=end | a/←=back | d/→=fwd | q=quit"
 

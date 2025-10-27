@@ -4,9 +4,8 @@ import random
 from constants import Constants
 from ultralytics import YOLO
 import cv2
-import torch
-import json 
-import pprint
+import json
+
 
 class Ball2DPositionConsumer(Consumer):
     def __init__(
@@ -33,27 +32,35 @@ class Ball2DPositionConsumer(Consumer):
             "bally",
         ]
         self.joinserver()
-    
+
     def computerandomballcoordinates(self):
-        print("Executing computerandomballcoordinates....")
-        x, y, z = random.uniform(0,1000), random.uniform(0,1000), random.uniform(0,1000)
+        self.newprint("Executing computerandomballcoordinates....")
+        x, y, z = (
+            random.uniform(0, 1000),
+            random.uniform(0, 1000),
+            random.uniform(0, 1000),
+        )
 
         return {
             "ballx": x,
             "bally": y,
             "ballz": z,
         }
-    
-    def run_yolo_model_on_image(self, image_path, model_path=Constants.YOLOV8N_WEIGHTS_PATH):
+
+    def run_yolo_model_on_image(
+        self, image_path, model_path=Constants.YOLOV8N_WEIGHTS_PATH
+    ):
         model = YOLO(model_path)
-        
+
         img = cv2.imread(image_path)
-        
+
         results = model(img)
-        
+
         return results
 
-    def run_yolo_on_video(self, model_path, video_path, start_frame=0, end_frame=None, conf=0.25):
+    def run_yolo_on_video(
+        self, model_path, video_path, start_frame=0, end_frame=None, conf=0.25
+    ):
         model = YOLO(model_path)
 
         cap = cv2.VideoCapture(video_path)
@@ -70,7 +77,7 @@ class Ball2DPositionConsumer(Consumer):
         frame_num = start_frame
 
         while frame_num < end_frame:
-            print(f"Processing frame {frame_num}", end='\r')
+            self.newprint(f"Processing frame {frame_num}", end="\r")
             ret, frame = cap.read()
             if not ret:
                 break
@@ -83,27 +90,38 @@ class Ball2DPositionConsumer(Consumer):
                     x1, y1, x2, y2 = boxes[0]
                     cx = int((x1 + x2) / 2)
                     cy = int((y1 + y2) / 2)
-                    results_dict[str(frame_num)] = {"ballx": cx, "bally": cy}
+                    results_dict[str(frame_num)] = {
+                        "ballx": cx,
+                        "bally": cy,
+                        "ballvisibility": True,
+                    }
 
             frame_num += 1
 
         cap.release()
 
         return results_dict, json.dumps(results_dict, indent=4)
-    
 
     def logicfunction(self, messagebody):
-        videopath = requests.get(f"{self.server}/get-video-path-against-id", params={"videoId": messagebody["videoid"]}).json().get("videoPath", Constants.DEFAULT_VIDEO_PATH)
+        videopath = (
+            requests.get(
+                f"{self.server}/get-video-path-against-id",
+                params={"videoId": messagebody["videoid"]},
+            )
+            .json()
+            .get("videoPath", Constants.DEFAULT_VIDEO_PATH)
+        )
         startframeid = messagebody.get("startframeid", 0)
         endframeid = messagebody.get("endframeid", 1000)
-        ball_markup,json_output = self.run_yolo_on_video(Constants.BALL_POSITION_DETECTION_WEIGHTS, videopath, startframeid, endframeid, conf=0.25) # TODO: write fetch function for ball coordinates, traj-ana module friendly
+        ball_markup, json_output = self.run_yolo_on_video(
+            Constants.BALL_POSITION_DETECTION_WEIGHTS,
+            videopath,
+            startframeid,
+            endframeid,
+            conf=0.25,
+        )
 
-        pprint.pprint(json_output)
-
-        missingcoordinate = {
-            "ballx" : -1,
-            "bally" : -1,
-        }
+        missingcoordinate = {"ballx": -1, "bally": -1, "ballvisibility": False}
 
         for i in range(messagebody["startframeid"], messagebody["endframeid"] + 1):
             if str(i) not in ball_markup:
@@ -114,7 +132,7 @@ class Ball2DPositionConsumer(Consumer):
         return True
 
     def saveresult(self, ball_markup, videoId):
-        print("Executing saveresult.... for ", videoId)
+        self.newprint("Executing saveresult.... for ", videoId)
 
         for frameid, coords in ball_markup.items():
             for column, value in coords.items():
@@ -123,17 +141,28 @@ class Ball2DPositionConsumer(Consumer):
                     json={
                         "frameid": int(frameid),
                         "column": column,
-                        "value": float(value),  # Convert numpy float32 to Python float
-                        "videoid": videoId
-                    }
+                        "value": (
+                            value if value in {True, False} else float(value)
+                        ),  # Convert numpy float32 to Python float
+                        "videoid": videoId,
+                    },
                 )
                 if response.status_code == 200:
-                    print(f"Updated frame {frameid}, column {column} successfully.")
+                    self.newprint(
+                        f"Updated frame {frameid}, column {column} successfully."
+                    )
                 else:
-                    print(f"Failed to update frame {frameid}, column {column}: {response.json()}")
-                
+                    self.newprint(
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}"
+                    )
+
         return True
-    
+
+
 if __name__ == "__main__":
-    c1 = Ball2DPositionConsumer(rabbitmqusername=Constants.RABBITMQ_USERNAME, rabbitmqpassword=Constants.RABBITMQ_PASSWORD, id="ball-2d-position-detection")
+    c1 = Ball2DPositionConsumer(
+        rabbitmqusername=Constants.RABBITMQ_USERNAME,
+        rabbitmqpassword=Constants.RABBITMQ_PASSWORD,
+        id="ball-2d-position-detection",
+    )
     c1.threadstart()
