@@ -391,7 +391,6 @@ A large-scale dataset comprising approximately 88,599 annotated frames was used 
 To improve model generalization, a balanced dataset consisting of 6,721 labeled ball frames and 2,700 non-ball frames was curated. This combination enabled the model to reducing false detections and improve convergence. The YOLOv11n model was selected for its lightweight architecture, making it suitable for detecting fast and tiny objects.
 
 \subsection{Trajectory Analysis}
-
 \subsubsection{Framewise Detection Acquisition}
 Each frame of match video is processed using a state-of-the-art deep learning-based object detection model, such as YOLO (You Only Look Once), which is renowned for rapid, accurate localization of small objects like sports balls in diverse lighting and game scenarios. For every frame, the model returns the pixel coordinates (x, y) of the ball center, if detected. This step forms the raw backbone sequence of ball locations.
 
@@ -429,6 +428,54 @@ For detailed motion analysis, velocities are essential. After smoothing, the pip
 
 
 content
+\subsection{Space Point Estimator}
+
+The Space Point Estimator module is intended to transform 2D points captured from table tennis video frames into 3D world coordinates, facilitating more comprehensive and spatially precise analytics throughout the entire system. This transformation is accomplished through sophisticated depth estimation utilizing the cutting-edge Depth Anything V2 model.
+
+\subsubsection{Workflow and Process}
+
+When a frame (image) is prepared for depth estimation---such as a video frame with identified table or ball positions---the image path is submitted to the estimator. The procedure unfolds as follows:
+
+\begin{itemize}
+    \item \textbf{Image Input and Preprocessing:} 
+    The estimator acquires the path to a video frame image (for instance, an annotated image with identified ball or keypoints). The image is loaded, transformed into a standardized RGB format utilizing PIL, and its dimensions are documented.
+    
+    \item \textbf{Depth Anything V2 Model Inference:}
+    The foundation of the system employs the Depth Anything V2 model---a transformer-based architecture that has been pre-trained for monocular depth estimation. The image is pre-processed into tensors suitable for the model. Depending on the hardware available, tensors are either transferred to the GPU or retained on the CPU for inference. The model generates a dense depth map, which illustrates per-pixel distance estimations within the scene.
+    
+    \item \textbf{Caching for Efficiency:}
+    To prevent redundant calculations on frequently processed images, the estimator stores depth maps using an MD5 hash of the image file. Subsequent requests for the same frame retrieve the result immediately from the cache.
+
+    \item \textbf{Depth Map Normalization \& Scaling:}
+    The depth map is normalized (all values adjusted to the 0--1 range relative to the depth minima/maxima in the map) and subsequently scaled to the desired metric depth range (e.g., up to 1499~mm) for table tennis analysis.
+
+    \item \textbf{Sub-Pixel 3D Coordinate Retrieval:}
+    For any $(x, y)$ pixel coordinate on the image---such as a ball or player position---the system employs bilinear interpolation on the depth map to derive an accurate $Z$ (depth) coordinate. This enables sub-pixel precision.
+
+    \item \textbf{Output:}
+    The resulting $(x, y, z)$ coordinate for each requested point can now be directly mapped into real-world 3D space, thereby facilitating advanced tactics analysis, bounce point localization, and more.
+\end{itemize}
+\subsubsection{Sample Process Flow}
+
+The method \texttt{getzpointfromxandy()} is invoked with an image (for instance, the annotated frame) and specified pixel coordinates.
+
+The estimator either loads or retrieves the corresponding depth map for that image.
+
+Bilinear interpolation is executed on the depth map utilizing the provided $x$ and $y$ coordinates, resulting in a highly accurate depth ($z$) value.
+
+The resulting $(x, y, z)$ triplet signifies authentic 3D positions, effectively addressing the intrinsic limitations of 2D video footage.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{fixed_depth_result.png}
+    \caption{Depth distribution and inverted depth map produced by the Space Point Estimator.}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsubsection{System Integration}
+
+Within the agentic system, this module functions as a Knowledge Source, supplying 3D information upon demand. Its output is uploaded to the blackboard database, where other agents—such as those responsible for trajectory or bounce analysis—can integrate depth-enhanced data to accomplish spatial and reasoning tasks that were previously unattainable. This facilitates precise coaching feedback, improved trajectory correction, and more comprehensive tactical insights for table tennis analytics.
+
 \section{Experimental Results}
 Every module has to be evaluated differently due to the varying nature of our Knowledge Sources. Some are ML models while others are simple data and image processing. The performance metrics of the Knowledge Sources are given below
 
