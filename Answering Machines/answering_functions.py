@@ -119,28 +119,27 @@ def answer_question_1(ball_position,ball_velocity,player_positions,table_coords)
         Table coordinates
 """
 
-def answer_question2(x,y,ball_positions,ball_bounces,table_coords):
+def answer_question2(x, y, ball_positions, ball_bounces, table_coords):
     """
     Result:
-        {   
-            bounces:{
-                "1":{
-                    "bounceFrame":x,
-                    "trajectory":{
-                        "frameID":{
-                            "ballx":x,
-                            "bally":y
-                        }
-                    }
-                    "segment":x
+        {
+            "bounces": {
+                "1": {
+                    "bounceFrame": x,
+                    "trajectory": {
+                        "frameID": {"ballx": x, "bally": y}
+                    },
+                    "segment": x
                 },
-            }
-            llmans:x
+            },
+            "llmans": [
+                "Natural language explanation for each bounce..."
+            ]
         }
     """
-    segments = []
-    result = {}
-    count = 0
+    result = {"bounces": {}, "llmans": []}
+    count = 1  
+
     for bounce in ball_bounces:
         bounce_frame = bounce['frameID']
         start = bounce_frame-20
@@ -160,7 +159,40 @@ def answer_question2(x,y,ball_positions,ball_bounces,table_coords):
             "segment":segment,
             "trajectory":trajectory_dict
         }
-        result[count] = bounce_dict
+        result["bounces"][str(count)] = bounce_dict
+
+        prompt = f"""
+        You are a table tennis video analysis expert.
+        You are given structured data describing how the ball moved and bounced between specific video frames.
+
+        Context:
+        You are analyzing ball bounce behavior from frame {x} to {y}.
+
+        Data includes:
+        - Ball positions (x, y) for each frame
+        - Table coordinates
+        - Bounce information with frame number and landing segment (e.g., short, mid, long, left, right, center)
+
+        Data:
+        {bounce_dict}
+
+        Task:
+        Using this data, describe in natural language how the ball bounced on the table between the specified frames.
+
+        Your explanation should include:
+        1. The number of bounces observed and their approximate sequence.
+        2. Where each bounce occurred (e.g., “on the opponent’s deep left corner” or “mid-table near the net”).
+        3. How the trajectory before and after each bounce looked (e.g., “low and fast”, “high arc”, “flat trajectory”).
+        4. A concise summary (1–2 sentences) of the overall bounce pattern.
+        """
+
+        llm_answer = llm_function(prompt)
+        result["llmans"].append(llm_answer)
+
+        count += 1 
+
+    return result
+
     
     return result 
 
