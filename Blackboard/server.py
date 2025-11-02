@@ -108,6 +108,43 @@ def check_and_return():
     except Exception as e:
         return jsonify(error=str(e)), 500
 
+@app.route("/checkandreturninrange", methods=["POST"])
+def check_and_return_in_range():
+    try:
+        data = request.json
+        if not data:
+            return jsonify(error="Missing JSON body"), 400
+
+        startframeid = data.get("startframeid")
+        endframeid = data.get("endframeid")
+        columnlist = data.get("columns", [])
+        videoid = data.get("videoid")
+        pprint.pprint(
+            f"Received check_and_return request for {startframeid} to {endframeid} and columns {columnlist}"
+        )
+        if startframeid is None or endframeid is None or not isinstance(columnlist, list):
+            return jsonify(error="Missing or invalid 'startframeid', 'endframeid' or 'columnlist'"), 400
+        
+        returnresult = dict()
+        returnresult['missing_frames'] = []
+        for frameid in range(startframeid, endframeid + 1):
+            dbresult = db.get_columns_and_values_by_frameid(frameid, videoid)
+            # pprint.pprint(f"Database result for frameid {frameid}: {dbresult}")
+            if dbresult is None:
+                returnresult['missing_frames'].append(frameid)
+                continue
+
+            # result = {column: dbresult.get(column, None) for column in columnlist}
+            result = {
+                column: dbresult.get(column)
+                for column in columnlist
+                if column in dbresult and dbresult.get(column) is not None
+            }
+            returnresult[frameid] = result
+        return jsonify(returnresult)
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
 
 @app.route("/updatecolumn", methods=["POST"])
 def update_column():
@@ -282,5 +319,5 @@ def upload_video():
         201,
     )
 
-
-app.run(debug=True, port=6060, host="0.0.0.0")
+if __name__ == "__main__":
+    app.run(debug=True, port=6060, host="0.0.0.0")
