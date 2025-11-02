@@ -1,3 +1,14 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# load .env from project root if present
+env_path = Path(__file__).resolve().parent.parent / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else:
+    load_dotenv()
+
 class Constants:
     IMAGE1_PATH = "assets/masked/i3.jpeg"
     IMAGE2_PATH = "assets/masked/i2.jpeg"
@@ -13,14 +24,14 @@ class Constants:
     DEFAULT_OUTPUT_FOLDER_PATH = "../assets/output/"
     DEFAULT_FILE_SAVE_PATH = "../storage/"
     DEFAULT_SERVER_URL = "http://localhost:6060"
-    RABBITMQ_USERNAME = "pw1tt"
-    RABBITMQ_PASSWORD = "securerabbitmqpassword"
-    RABBITMQ_HOST = "localhost"
-    RABBITMQ_PORT = 5672
-    POSTGRES_USERNAME = "pw1tt"
-    POSTGRES_PASSWORD = "securepostgrespassword"
-    POSTGRES_DBNAME = "blackboard"
-    POSTGRES_HOST = "localhost"
-    POSTGRES_PORT = 5432
-    YOLOV8N_WEIGHTS_PATH = "../weights/yolov8n.pt"
-    YOLO11N_POSE_WEIGHTS_PATH = "../weights/yolov11n-pose.pt"
+    RABBITMQ_USERNAME = os.getenv("RABBITMQ_USERNAME", "pw1tt")
+    RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "securerabbitmqpassword")
+    RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
+    RABBITMQ_PORT = os.getenv("RABBITMQ_PORT", 5672)
+    POSTGRES_USERNAME = os.getenv("POSTGRES_USERNAME", "pw1tt")
+    POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "securepostgrespassword")
+    POSTGRES_DBNAME = os.getenv("POSTGRES_DBNAME", "blackboard")
+    POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+    POSTGRES_PORT = os.getenv("POSTGRES_PORT", 5432)
+    YOLOV8N_WEIGHTS_PATH = os.getenv("YOLOV8N_WEIGHTS_PATH", "../weights/yolov8n.pt")
+    YOLO11N_POSE_WEIGHTS_PATH = os.getenv("YOLO11N_POSE_WEIGHTS_PATH", "../weights/yolov11n-pose.pt")
