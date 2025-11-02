@@ -1,4 +1,15 @@
-segments = {
+import os
+import google.generativeai as genai
+import dotenv
+
+dotenv.load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise RuntimeError("GEMINI_API_KEY not set in environment; set it in your environment or in a .env file")
+
+genai.configure(api_key=GEMINI_API_KEY)
+
+table_segments = {
     (0.0,0.1):'long',
     (0.1,0.4):'mid',
     (0.4,0.5):'short',
@@ -18,7 +29,7 @@ def get_landing_segment(ballx, table_corners):
     table_length,left_edge,_ = get_longer_edge(table_corners)
     relative_x = (ballx - left_edge[0]) / table_length
     print(f"Relative X Position: {relative_x}")
-    for (start,end),name in segments.items():
+    for (start,end),name in table_segments.items():
         if start <= relative_x < end:
             return name
             return segment_names[i]
@@ -147,7 +158,7 @@ def answer_question2(x, y, ball_positions, ball_bounces, table_coords):
         frames = list(range(start,end))
         bounce_ball_pos = ball_positions["bounce_frame"]
         segment = get_landing_segment(bounce_ball_pos[0],table_coords)
-        segments.append(segment)
+        table_segments.append(segment)
         trajectory_dict = {}
         for frame in frames:
             frame_dict = {}
@@ -197,16 +208,55 @@ def answer_question2(x, y, ball_positions, ball_bounces, table_coords):
     return result 
 
 
-import os
-import google.generativeai as genai
-import dotenv
+def segmenter(bounces,threshold,fps):
+    '''
+    args:
+        bounces:[frame_id]
+        threshold: number of seconds
+        fps: fps of video
+    results:
+        segments:[(start_frame,end_frame)]
 
-dotenv.load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY not set in environment; set it in your environment or in a .env file")
+    We check the gaps between bounces, if at any point, there is a gap of more than some threshold like 3s, we call it a segment
+    '''
+    segments = []
+    prev_bounce = 0
+    segment = [prev_bounce]
+    for bounce in bounces:
+        curr_bounce = bounce['frameID']
+        threshold_frames = fps * threshold
+        if curr_bounce - prev_bounce >= threshold:
+            segments.append(segment)
+            segment = [curr_bounce]
+        else:
+            segment.append(curr_bounce)
+    
+    return segments
 
-genai.configure(api_key=GEMINI_API_KEY)
+"""
+    Replay the second(x) point loss
+    Data Needed:
+    bounces
+    We first have to find all the points in the match for which we use the segmenter which uses bounces, we return the second segment
+    We return -10s to +3s of the end of that segment
+"""
+def answer_question_3(i,bounces):
+    """
+    {
+        start: int
+        end: int
+    }
+    """
+
+    segments = segmenter(bounces,3,60)
+    segment = segments[i+1]
+    start = segment[0]-600
+    end = segment[-1]+180
+    result = {
+        "start":start,
+        "end":end
+    }
+    return result
 
     
 def llm_function(question: str) -> str:
