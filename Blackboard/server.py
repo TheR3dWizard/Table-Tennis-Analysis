@@ -11,10 +11,14 @@ app = Flask(__name__)
 db = PostgresService(
     username=Constants.POSTGRES_USERNAME, password=Constants.POSTGRES_PASSWORD
 )
-mqtt = RabbitMQService(
-    username=Constants.RABBITMQ_USERNAME, password=Constants.RABBITMQ_PASSWORD
-)
-mqtt.connect()
+
+if os.getenv("NO_RABBITMQ", "false").lower() == "true":
+    print("Skipping RabbitMQ connection as NO_RABBITMQ is set to true")
+else:
+    mqtt = RabbitMQService(
+        username=Constants.RABBITMQ_USERNAME, password=Constants.RABBITMQ_PASSWORD
+    )
+    mqtt.connect()
 
 consumer_column_queue_map = {
     "tablex1": "table-vertex-detection",
