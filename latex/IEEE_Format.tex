@@ -165,16 +165,26 @@ Classical work by Jacobs et al. \cite{amoe} on adaptive mixtures of experts intr
 Thus, modern blackboard-based LLM multi-agent systems (bMAS) \cite{hanllm} embody a synthesis: the symbolic transparency of early blackboard systems [10], the adaptability of mixtures of experts \cite{amoe}\cite{moe}, and the scalability insights captured in surveys of MoE research \cite{moe}\cite{smoe}.
 
 \subsection{Blackboard Architecture}
-
-The blackboard-based LLM Multi-Agent System (bMAS) integrates the classical blackboard architecture \cite{nii1986blackboard} into LLM-driven multi-agent systems. By coordinating agents through a shared information space and adaptive scheduling, it avoids rigid workflows and inefficiencies. Its initial implementation, LbMAS, exhibits strong scalability and efficiency \cite{hanllm}.
+The capabilities of a classical Blackboard Architecture allows researchers to take advantage of multi-agent systems in LLM-driven architectures\cite{nii1986blackboard}.
+Agents enjoy flexible and competent workflows by making use of the information sharing and adaptive scheduling features of the blackboard \cite{hanllm}.
+Implementations of LbMAS have shown to be scalable and efficient.
 
 \subsubsection{Workflow}
-The blackboard-based LLM multi-agent system (bMAS) follows an iterative cycle of agent collaboration orchestrated by a CU \cite{nii1986blackboard}. Each problem-solving session begins with agent generation, where expert roles relevant to the query are instantiated. The CU then selects appropriate agents and supplies them with the blackboard content. Agents interpret this shared memory, contribute their outputs back to the blackboard, and the process continues until a stopping condition---consensus, a decider’s output, or maximum rounds---is achieved \cite{hanllm}.  
+The blackboard-based LLM multi-agent system (bMAS) undergoes one or more iterations during one problem solving session. 
+Each iteration is an agent orchestration, managed by the Control Unit (CU)\cite{nii1986blackboard}. 
+Each problem-solving session begins with agent generation, where an
+expert skills required based on some query. The CU then selects appropriate agents based on the skills and provides them with the blackboard content. 
+Agents consume and interpret this shared memory, perform computations, contribute their outputs back to the blackboard.
+This whole process continues until some stopping condition is satisfied - either a consensus or a decider’s output or maximum rounds. \cite{hanllm}.  
 
 \subsubsection{Models Used}
-The model is structured around three core components: control unit, blackboard, and LLM-based agents. The control unit, often an LLM itself, decides which agents are relevant at a given stage \cite{hanllm}, thus ensuring efficiency and reducing token consumption. The blackboard functions as shared memory, compartmentalized into public and private spaces, where agents record, debate, and refine their outputs \cite{nii1986blackboard}.  
+Classical Blackboard Architecture has three core components: (1) Control Unit (2) Blackboard (3) Knowledge Sources / Agents.
+The control unit, which could also be an LLM, decides which skills and agents are required at a given stage \cite{hanllm}, thus ensuring efficiency and reducing token consumption. 
+The blackboard functions as shared, persistent memory, with potential to be separated into public and private spaces, where oen or more agents record, debate, and refine their outputs \cite{nii1986blackboard}.  
 
-The agents themselves perform specialized roles like problem decomposition, evaluation of inconsistencies, or solution proposal. Through repeated iterations, the system evolves towards a consensus or majority-approved solution \cite{hanllm}.
+Advanced agents are made capable of special roles like problem decomposition, evaluation of inconsistencies, or solution proposal. 
+The whole system, given enough iterations, converges into one single solution.
+\cite{hanllm}.
 
 \subsection{Action Spotting}
 
