@@ -535,16 +535,16 @@ Here we use normal metrics such as Precision and Recall along with certain YOLO-
 % \label{fig}
 % \end{figure}
 \section{Future Work}
-The MASs proposed here so far utilizes fixed architectures with pre-defined agent roles and collaboration mechanisms, which often requires manual construction and thus lack generality.
-Some recent studies develop dynamic MASs (Hu et al., 2025; Zhang et al., 2025d; Shang et al., 2025; Liu et al., 2024a; Zhang et 
-al., 2025a), also called autonomous MASs, which configure structures and communication strategies based on tasks
-and environment feedbacks. Such MASs are modularized and the optimized MAS configurations
-are searched in specified spaces. Compared with
-fixed MASs, they often have an additional, time consuming training step and the simplified search
-spaces cannot cover all kinds of collaboration architectures. These two-step approaches essentially use
-fixed collaboration mechanisms in problem solving
-obtained from the supervised training based on a
-small number of samples in the first step.
+The Multi-Agent System proposed here operates on static, preconfigured blackboard architecture, which almost often requires manual construction and thus lack generality.
+Recent studies on LLM Based Multi-Agent System (LbMAS) \cite{hanllm} develop autonomous MASs by taking advantage of using a Large Language Model as the control unit. 
+These LLMs can be used to dynamically configure new agents and their skills in runtime, make it much more general and requiring low to none manual setup.
+While, in theory, a static agent configuration is quicker and deterministic, the generality of a dynamic MAS outweighs those disadvantages.  
+
+Further to leverage the use of distributed 
+
+In an age of rapid Cloud and Distributed Computing evolution, our proposal could also be made to take leverage of remote knowledge sources / agents and remote computing resources over a distributed network. 
+Recent studies \cite{agentworkfloworchetration} \cite{distributedblackboard} show promising implementations of MASs with many agents running on different networks/systems.
+Our idea of a highly scalable MAS lies behind the ability to orchestrate and manage each type of knowledge source, individually, using a control unit of its own, taking inspiration from Kubernetes.
 \section{Acknowledgement}
 content
 \bibliographystyle{plain} % or 'unsrt', 'abbrv', etc.
