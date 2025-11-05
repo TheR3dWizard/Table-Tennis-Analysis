@@ -162,18 +162,18 @@ def answer_question2(x, y, ball_positions, ball_bounces, table_coords):
     segments = []
 
     for bounce in ball_bounces:
-        bounce_frame = bounce['frameID']
+        bounce_frame = bounce
         start = bounce_frame-20
         end = bounce_frame-20
         frames = list(range(start,end))
-        bounce_ball_pos = ball_positions["bounce_frame"]
-        segment = get_landing_segment(bounce_ball_pos[0],table_coords)
+        bounce_ball_pos = ball_positions[bounce_frame]
+        segment = get_landing_segment(bounce_ball_pos["x"],table_coords)
         segments.append(segment)
         trajectory_dict = {}
         for frame in frames:
             frame_dict = {}
-            frame_dict["ballx"] = ball_positions["frame"][0]
-            frame_dict["bally"] = ball_positions["frame"][1]
+            frame_dict["ballx"] = ball_positions["frame"]["x"]
+            frame_dict["bally"] = ball_positions["frame"]["y"]
             trajectory_dict["frame"] = frame_dict
         bounce_dict = {
             "bounceFrame":bounce_frame,

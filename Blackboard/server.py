@@ -564,19 +564,17 @@ def ask_question():
             return jsonify(error="No ball bounces found in range", data=data), 404
 
         # Collect ball positions for each frame in the requested range
-        ball_positions = []
+        ball_positions = {}
         for fid in range(start_frame, end_frame + 1):
             frame_data = data.get(fid) or data.get(str(fid))
             if not frame_data or not isinstance(frame_data, dict):
                 continue
-            ball_positions.append(
-            {
-                "frame": fid,
+            ball_positions[fid] = {
                 "x": frame_data.get("ballx"),
                 "y": frame_data.get("bally"),
                 "z": frame_data.get("ballz"),
             }
-            )
+            
 
         if not ball_positions:
             return jsonify(error="No ball position data found in the requested range"), 404
