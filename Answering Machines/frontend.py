@@ -3,11 +3,11 @@ import csv
 import time
 
 # === CONFIG ===
-video_path = "game_1.mp4"
+video_path = "../Videos/game_1.mp4"
 output_csv = "annotations.csv"
 skip_seconds = 2
 instructions = "SPACE=pause/resume | s=start | e=end | a/←=back | d/→=fwd | q=quit"
-
+prompt = ""
 # === INIT ===
 cap = cv2.VideoCapture(video_path)
 if not cap.isOpened():
