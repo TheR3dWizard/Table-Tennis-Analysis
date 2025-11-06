@@ -38,10 +38,6 @@ while True:
         if not ret:
             print("End of video.")
             break
-    else:
-        frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-        ret, frame = cap.read()
 
     frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
     draw_overlay(frame, frame_idx)
