@@ -8,6 +8,8 @@
 *.npy
 *.json
 *.mp4
+*.txt
+*.cache
 Datasets/Dataset/game1/Clip1/0000.jpg
 Datasets/Dataset/game1/Clip10/Label.csv
 # Datasets/OpenTT/game_1/segmentation_masks/17.png
