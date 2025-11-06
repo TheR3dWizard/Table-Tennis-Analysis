@@ -250,50 +250,149 @@ class TrajectoryAnalysisConsumer(Consumer):
 
         return smoothed_positions, confidence_scores
 
+    # def correct_bounces_with_table(self, smoothed_positions, table_coords):
+    #     """Corrects the trajectory by aligning suspected bounce points with the table's y-coordinates."""
+    #     corrected_positions = smoothed_positions.copy()
+
+    #     # extract y-coordinates correctly from table_coords dict
+    #     top_y = min(
+    #         table_coords["tabley1"],
+    #         table_coords["tabley2"],
+    #         table_coords["tabley3"],
+    #         table_coords["tabley4"],
+    #     )
+    #     bottom_y = max(
+    #         table_coords["tabley1"],
+    #         table_coords["tabley2"],
+    #         table_coords["tabley3"],
+    #         table_coords["tabley4"],
+    #     )
+    #     # print(f"Table coordinates: top_y={top_y}, bottom_y={bottom_y}")
+
+    #     if len(corrected_positions) < 3:
+    #         # print("Too few positions to correct bounces, returning unchanged")
+    #         return corrected_positions
+
+    #     vy = np.gradient(corrected_positions[:, 1])
+    #     bounce_count = 0
+
+    #     for i in range(1, len(corrected_positions) - 1):
+    #         if vy[i - 1] * vy[i + 1] < 0:
+    #             if (
+    #                 abs(corrected_positions[i, 1] - top_y) < 15
+    #                 or abs(corrected_positions[i, 1] - bottom_y) < 15
+    #             ):
+    #                 if abs(corrected_positions[i, 1] - top_y) < abs(
+    #                     corrected_positions[i, 1] - bottom_y
+    #                 ):
+    #                     corrected_positions[i, 1] = top_y
+    #                     # print(f"Corrected bounce at frame {i} to table top (y={top_y})")
+    #                 else:
+    #                     corrected_positions[i, 1] = bottom_y
+    #                     # print(f"Corrected bounce at frame {i} to table bottom (y={bottom_y})")
+    #                 bounce_count += 1
+
+    #     # print(f"Corrected {bounce_count} bounce points")
+    #     return corrected_positions
+
+    # def detect_bounce_points(
+    #     self,
+    #     smoothed_positions,
+    #     table_coords,
+    #     startframeid,
+    #     proximity_threshold=15,
+    #     min_velocity_change=0.5,
+    #     segment_frames=None,
+    # ):
+    #     """
+    #     Detect bounce points and return only frame IDs in bounceframes format: [frameid1, frameid2, ...]
+    #     """
+    #     if len(smoothed_positions) < 5:
+    #         return []
+    #     y = smoothed_positions[:, 1]
+    #     vy = np.gradient(y)
+
+    #     # extract y-coordinates correctly from table_coords dict
+    #     top_y = min(
+    #         table_coords["tabley1"],
+    #         table_coords["tabley2"],
+    #         table_coords["tabley3"],
+    #         table_coords["tabley4"],
+    #     )
+    #     bottom_y = max(
+    #         table_coords["tabley1"],
+    #         table_coords["tabley2"],
+    #         table_coords["tabley3"],
+    #         table_coords["tabley4"],
+    #     )
+
+    #     bounce_frames = []
+    #     last_bounce_frame = -999
+    #     # Default: segment_frames = [start_frame, start_frame+1, ...]
+    #     if segment_frames is None or len(segment_frames) != len(y):
+    #         raise ValueError(
+    #             "segment_frames must be provided and match the length of smoothed_positions."
+    #         )
+
+    #     for i in range(2, len(y) - 2):
+    #         proximity_top = abs(y[i] - top_y) < proximity_threshold
+    #         proximity_bottom = abs(y[i] - bottom_y) < proximity_threshold
+    #         if (
+    #             (y[i] < y[i - 1])
+    #             and (y[i] < y[i + 1])
+    #             and (proximity_top or proximity_bottom)
+    #         ):
+    #             v_change = abs(vy[i - 1] - vy[i + 1])
+    #             if v_change >= min_velocity_change and i - last_bounce_frame > 3:
+    #                 bounce_frames.append(segment_frames[i])
+    #                 last_bounce_frame = i
+    #     shifted_bounce_frames = [bf for bf in bounce_frames]
+    #     return shifted_bounce_frames
+
+
+
+
     def correct_bounces_with_table(self, smoothed_positions, table_coords):
-        """Corrects the trajectory by aligning suspected bounce points with the table's y-coordinates."""
+        """
+        Corrects the trajectory by aligning suspected bounce points 
+        with the table's top or bottom y-coordinates.
+        """
+        if smoothed_positions is None or len(smoothed_positions) < 3:
+            return smoothed_positions
+
         corrected_positions = smoothed_positions.copy()
 
-        # extract y-coordinates correctly from table_coords dict
-        top_y = min(
-            table_coords["tabley1"],
-            table_coords["tabley2"],
-            table_coords["tabley3"],
-            table_coords["tabley4"],
-        )
-        bottom_y = max(
-            table_coords["tabley1"],
-            table_coords["tabley2"],
-            table_coords["tabley3"],
-            table_coords["tabley4"],
-        )
-        # print(f"Table coordinates: top_y={top_y}, bottom_y={bottom_y}")
+        # Extract y-coordinates safely from the table_coords dictionary
+        table_y_values = [
+            table_coords.get("tabley1"),
+            table_coords.get("tabley2"),
+            table_coords.get("tabley3"),
+            table_coords.get("tabley4"),
+        ]
+        if None in table_y_values:
+            raise ValueError("table_coords must contain keys 'tabley1' to 'tabley4'.")
 
-        if len(corrected_positions) < 3:
-            # print("Too few positions to correct bounces, returning unchanged")
-            return corrected_positions
+        top_y = min(table_y_values)
+        bottom_y = max(table_y_values)
 
         vy = np.gradient(corrected_positions[:, 1])
         bounce_count = 0
 
         for i in range(1, len(corrected_positions) - 1):
+            # Detect sign change in vertical velocity (potential bounce)
             if vy[i - 1] * vy[i + 1] < 0:
-                if (
-                    abs(corrected_positions[i, 1] - top_y) < 15
-                    or abs(corrected_positions[i, 1] - bottom_y) < 15
-                ):
-                    if abs(corrected_positions[i, 1] - top_y) < abs(
-                        corrected_positions[i, 1] - bottom_y
-                    ):
-                        corrected_positions[i, 1] = top_y
-                        # print(f"Corrected bounce at frame {i} to table top (y={top_y})")
-                    else:
-                        corrected_positions[i, 1] = bottom_y
-                        # print(f"Corrected bounce at frame {i} to table bottom (y={bottom_y})")
+                y_pos = corrected_positions[i, 1]
+                dist_top = abs(y_pos - top_y)
+                dist_bottom = abs(y_pos - bottom_y)
+
+                if dist_top < 15 or dist_bottom < 15:
+                    corrected_positions[i, 1] = top_y if dist_top < dist_bottom else bottom_y
                     bounce_count += 1
 
-        # print(f"Corrected {bounce_count} bounce points")
+        # Optionally log or return bounce count if needed
+        # print(f"Corrected {bounce_count} bounce points.")
         return corrected_positions
+
 
     def detect_bounce_points(
         self,
@@ -305,49 +404,50 @@ class TrajectoryAnalysisConsumer(Consumer):
         segment_frames=None,
     ):
         """
-        Detect bounce points and return only frame IDs in bounceframes format: [frameid1, frameid2, ...]
+        Detect bounce points in the trajectory and return a list of corresponding frame IDs.
+        Each bounce corresponds to a local minimum in the vertical trajectory close to the table.
         """
-        if len(smoothed_positions) < 5:
+        if smoothed_positions is None or len(smoothed_positions) < 5:
             return []
+
         y = smoothed_positions[:, 1]
         vy = np.gradient(y)
 
-        # extract y-coordinates correctly from table_coords dict
-        top_y = min(
-            table_coords["tabley1"],
-            table_coords["tabley2"],
-            table_coords["tabley3"],
-            table_coords["tabley4"],
-        )
-        bottom_y = max(
-            table_coords["tabley1"],
-            table_coords["tabley2"],
-            table_coords["tabley3"],
-            table_coords["tabley4"],
-        )
+        # Extract y-coordinates correctly from the table_coords dictionary
+        table_y_values = [
+            table_coords.get("tabley1"),
+            table_coords.get("tabley2"),
+            table_coords.get("tabley3"),
+            table_coords.get("tabley4"),
+        ]
+        if None in table_y_values:
+            raise ValueError("table_coords must contain keys 'tabley1' to 'tabley4'.")
+
+        top_y = min(table_y_values)
+        bottom_y = max(table_y_values)
+
+        if segment_frames is None or len(segment_frames) != len(y):
+            raise ValueError(
+                "segment_frames must be provided and have the same length as smoothed_positions."
+            )
 
         bounce_frames = []
         last_bounce_frame = -999
-        # Default: segment_frames = [start_frame, start_frame+1, ...]
-        if segment_frames is None or len(segment_frames) != len(y):
-            raise ValueError(
-                "segment_frames must be provided and match the length of smoothed_positions."
-            )
 
         for i in range(2, len(y) - 2):
-            proximity_top = abs(y[i] - top_y) < proximity_threshold
-            proximity_bottom = abs(y[i] - bottom_y) < proximity_threshold
-            if (
-                (y[i] < y[i - 1])
-                and (y[i] < y[i + 1])
-                and (proximity_top or proximity_bottom)
-            ):
+            y_curr = y[i]
+            proximity_top = abs(y_curr - top_y) < proximity_threshold
+            proximity_bottom = abs(y_curr - bottom_y) < proximity_threshold
+
+            # Check local minimum
+            if (y_curr < y[i - 1]) and (y_curr < y[i + 1]) and (proximity_top or proximity_bottom):
                 v_change = abs(vy[i - 1] - vy[i + 1])
-                if v_change >= min_velocity_change and i - last_bounce_frame > 3:
+                # Ensure distinct bounces separated by at least 3 frames
+                if v_change >= min_velocity_change and (i - last_bounce_frame) > 3:
                     bounce_frames.append(segment_frames[i])
                     last_bounce_frame = i
-        shifted_bounce_frames = [bf for bf in bounce_frames]
-        return shifted_bounce_frames
+
+        return bounce_frames
 
     def logicfunction(self, messagebody):
         startframeid = messagebody.get("startframeid", 0)
