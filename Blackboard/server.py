@@ -112,13 +112,29 @@ def check_and_return():
     except Exception as e:
         return jsonify(error=str(e)), 500
 
-def determineifnone(map):
+def determineifnone(map, questionclass=0):
     for key,value in map.items():
-        if key not in {"videoid", "frameid", "frameaction", "ballz", "ballzvector", "player1z", "player2z", "remarks", "combinedheatmappath"} and value is None:
+        basecheckset = {"videoid", "frameid", "frameaction", "ballz", "ballzvector", "player1z", "player2z", "remarks", "combinedheatmappath", "depthmappath"}
+        if questionclass == 1:
+            checkset = basecheckset.union({'ballvisibility'})
+        elif questionclass == 2:
+            checkset = basecheckset.union({
+                "player2x",
+                "ballvisibility",
+                "player1y",
+                "ballyvector",
+                "player2y",
+                "ballxvector",
+                "player1x",
+            })
+        else:
+            checkset = basecheckset
+            
+        if key not in checkset and value is None:
             return True
     return False
 
-def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,placerequest):
+def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,placerequest,questionclass=0):
         pprint.pprint(
             f"Received check_and_return request for {startframeid} to {endframeid} and columns {columnlist}"
         )
@@ -131,7 +147,7 @@ def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,pla
             dbresult = db.get_columns_and_values_by_frameid(frameid, videoid)
             print("frameid", frameid)
             pprint.pprint(dbresult)
-            if determineifnone(dbresult):
+            if dbresult is None or determineifnone(dbresult, questionclass):
                 returnresult['missing_frames'].append(frameid)
                 continue
 
@@ -207,7 +223,7 @@ def update_player_coordinates():
     return jsonify(message="Player coordinates updated successfully")
 
 
-def placerequest_fun(frame,columnslist, videoid):
+def placerequest_fun(startframe, endframe, columnslist, videoid, questionclass=0):
     print(1)
     targetqueue: Set = set(
         [consumer_column_queue_map.get(c, None) for c in columnslist]
@@ -222,8 +238,8 @@ def placerequest_fun(frame,columnslist, videoid):
         columnslist
         ],
         "returnmessageid": "bruno-test-message-100",
-        "startframeid": frame,
-        "endframeid": frame+1,
+        "startframeid": startframe,
+        "endframeid": endframe,
         "frameid": 197,
         "videoid": videoid
     }
@@ -425,11 +441,11 @@ def get_ball_bounces(data):
 
 def get_data_at_frame(data,frameid,columnslist):
     res = []
-    for key,value in data:
+    for key,value in data.items():
         if key == "missing_frames":
             continue
         try:
-            frameid = int(key)
+            fid = int(key)
         except Exception:
             continue
         if not isinstance(value, dict):
@@ -458,17 +474,34 @@ def ask_question():
     pprint.pprint(f"Extracted frame range {start_frame} to {end_frame} from question")
 
     keys = required_keys[question_class]
-    data = check_and_return_in_range_fun(start_frame,end_frame,keys,videoid,False)
+    data = check_and_return_in_range_fun(start_frame,end_frame,keys,videoid,False,question_class)
     pprint.pprint(f"Data retrieved for frames {start_frame} to {end_frame}")
     pprint.pprint(data) 
     missingframes = data["missing_frames"]
     pprint.pprint(f"Missing frames for requested data: {missingframes}")
-    c = 0 
-    for frame in missingframes:
-        c += 1
-        placerequest_fun(frame,keys, videoid)
-    
-    print(c)
+
+    # Convert missingframes (list of ints) into contiguous (start,end) ranges like [(x,y), (a,b), ...]
+    try:
+        frames_sorted = sorted(set(missingframes))
+        missing_frame_ranges = []
+        if frames_sorted:
+            start = end = frames_sorted[0]
+            for f in frames_sorted[1:]:
+                if f == end + 1:
+                    end = f
+                else:
+                    missing_frame_ranges.append((start, end))
+                    start = end = f
+            missing_frame_ranges.append((start, end))
+    except Exception:
+        missing_frame_ranges = []
+
+    pprint.pprint(f"Converted missing frames into ranges: {missing_frame_ranges}")
+    # keep the original list intact for the existing loop below; if you prefer to iterate ranges instead,
+    # you can replace missingframes = missing_frame_ranges
+
+    for rangestart, rangeend in missing_frame_ranges:
+        placerequest_fun(rangestart, rangeend, keys, videoid)
     
     time.sleep(5)
     # retry with exponential backoff up to 60 seconds (account for the 5s already slept)
@@ -478,7 +511,7 @@ def ask_question():
 
     # Re-check missing frames until none remain or timeout
     while elapsed < max_wait:
-        data = check_and_return_in_range_fun(start_frame, end_frame, keys, videoid, False)
+        data = check_and_return_in_range_fun(start_frame, end_frame, keys, videoid, False, question_class)
         missingframes = data.get("missing_frames", [])
         if not missingframes:
             break
@@ -520,7 +553,6 @@ def ask_question():
 
     if question_class == 1:   
         ball_bounces = get_ball_bounces(data)
-        ball_bounces = get_ball_bounces(data)
         if not ball_bounces:
             return jsonify(error="No ball bounces found in range", data=data), 404
 
@@ -561,10 +593,10 @@ def ask_question():
 
         # Table coordinates (four corners)
         table_coordinates = [
-            (frame_data.get("tablex1"),frame_data.get("tabley1")),
-            {frame_data.get("tablex2"), frame_data.get("tabley2")},
-            {frame_data.get("tablex3"), frame_data.get("tabley3")},
-            {frame_data.get("tablex4"), frame_data.get("tabley4")},
+            (frame_data.get("tablex1"), frame_data.get("tabley1")),
+            (frame_data.get("tablex2"), frame_data.get("tabley2")),
+            (frame_data.get("tablex3"), frame_data.get("tabley3")),
+            (frame_data.get("tablex4"), frame_data.get("tabley4")),
         ]
 
         response = {
@@ -577,7 +609,7 @@ def ask_question():
         }
 
         reason = answer_question_1(ball_position, ball_velocity, player_positions, table_coordinates)
-        response["reason"] = response
+        response["reason"] = reason
         return jsonify(response), 200
     elif question_class == 2:
         ball_bounces = get_ball_bounces(data)
