@@ -112,6 +112,12 @@ def check_and_return():
     except Exception as e:
         return jsonify(error=str(e)), 500
 
+def determineifnone(map):
+    for key,value in map.items():
+        if key not in {"videoid", "frameid", "frameaction", "ballz", "ballzvector", "player1z", "player2z", "remarks", "combinedheatmappath"} and value is None:
+            return True
+    return False
+
 def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,placerequest):
         pprint.pprint(
             f"Received check_and_return request for {startframeid} to {endframeid} and columns {columnlist}"
@@ -123,6 +129,8 @@ def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,pla
         returnresult['missing_frames'] = []
         for frameid in range(startframeid, endframeid + 1):
             dbresult = db.get_columns_and_values_by_frameid(frameid, videoid)
+            print("frameid", frameid)
+            pprint.pprint(dbresult)
             # pprint.pprint(f"Database result for frameid {frameid}: {dbresult}")
             if dbresult is None:
                 returnresult['missing_frames'].append(frameid)
@@ -322,6 +330,7 @@ def insert_bulk_rows():
 def upload_video():
     uploaded_file = request.files.get("file")
     if not uploaded_file:
+        print("Missing 'file' in form-data")
         return jsonify(error="Missing 'file' in form-data"), 400
 
     filename_from_body = (
@@ -441,17 +450,22 @@ def ask_question():
     if not videoid:
         return jsonify(error="Missing videoid"), 400
     question_class = classify_question_with_llm(question)
+    pprint.pprint(f"Classified question '{question}' as class {question_class}")
     start_frame,end_frame = extract_frame_range(question)
+    pprint.pprint(f"Extracted frame range {start_frame} to {end_frame} from question")
 
     keys = required_keys[question_class]
     data = check_and_return_in_range_fun(start_frame,end_frame,keys,videoid,False)
+    pprint.pprint(f"Data retrieved for frames {start_frame} to {end_frame}")
+    pprint.pprint(data) 
     missingframes = data["missing_frames"]
+    pprint.pprint(f"Missing frames for requested data: {missingframes}")
     for frame in missingframes:
         placerequest_fun(frame,keys)
     
     time.sleep(5)
     # retry with exponential backoff up to 60 seconds (account for the 5s already slept)
-    max_wait = 60.0
+    max_wait = 600.0
     delay = 1.0
     elapsed = 5.0  # already waited above
 
@@ -566,6 +580,7 @@ def ask_question():
         # Collect ball positions for each frame in the requested range
         ball_positions = {}
         for fid in range(start_frame, end_frame + 1):
+            print(fid)
             frame_data = data.get(fid) or data.get(str(fid))
             if not frame_data or not isinstance(frame_data, dict):
                 continue

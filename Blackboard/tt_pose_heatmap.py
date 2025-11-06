@@ -251,6 +251,15 @@ def analyze_video(
         filtered_ids = filtered_ids[:num_players]
 
     selected_ids = filtered_ids
+    # Unique filename using hash(video path + start/end) + timestamp
+    hasher = hashlib.md5()
+    hasher.update(str(video).encode("utf-8"))
+    hasher.update(str(start_frame).encode("utf-8"))
+    hasher.update(str(end_frame).encode("utf-8"))
+    hash_part = hasher.hexdigest()[:8]
+    ts_part = datetime.now().strftime("%Y%m%d_%H%M%S")
+    overlay_name = f"combined_heatmap_overlay_{hash_part}_{ts_part}.png"
+    overlay_path = os.path.join(out_dir, overlay_name)
 
     # Build frame map for selected players (player1 -> selected_ids[0], player2 -> selected_ids[1] if exists)
     frame_map = {}
@@ -271,6 +280,7 @@ def analyze_video(
             "player2x": x2,
             "player2y": y2,
             "player2z": -1,
+            "combinedheatmappath": overlay_path,
         }
 
     # Heatmaps for selected players only
@@ -307,15 +317,6 @@ def analyze_video(
         sample_frame, 0.6, cv2.cvtColor(colored, cv2.COLOR_RGB2BGR), 0.4, 0
     )
 
-    # Unique filename using hash(video path + start/end) + timestamp
-    hasher = hashlib.md5()
-    hasher.update(str(video).encode("utf-8"))
-    hasher.update(str(start_frame).encode("utf-8"))
-    hasher.update(str(end_frame).encode("utf-8"))
-    hash_part = hasher.hexdigest()[:8]
-    ts_part = datetime.now().strftime("%Y%m%d_%H%M%S")
-    overlay_name = f"combined_heatmap_overlay_{hash_part}_{ts_part}.png"
-    overlay_path = os.path.join(out_dir, overlay_name)
 
     cv2.imwrite(overlay_path, overlay)
     cv2.imwrite(os.path.join(out_dir, "combined_heatmap_gray.png"), norm)
