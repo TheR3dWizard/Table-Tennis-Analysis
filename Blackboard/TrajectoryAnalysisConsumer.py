@@ -5,7 +5,7 @@ from scipy.signal import savgol_filter
 from scipy.interpolate import interp1d
 from KalmanTRackerClass import KalmanTracker
 import numpy as np
-
+import pandas as pd
 
 class TrajectoryAnalysisConsumer(Consumer):
     def __init__(
@@ -394,16 +394,43 @@ class TrajectoryAnalysisConsumer(Consumer):
         return corrected_positions
 
     
-    def detect_bounce_points(smoothed_positions, table_coords,
+    def detect_bounce_points(self, smoothed_positions, table_coords,
                             proximity_threshold=250,  # Increased significantly
                             min_velocity_change=8.0,  # Increased to filter noise
                             min_frame_gap=10,  # Increased to avoid duplicate detections
                             segment_frames=None):
         """
         Detect bounce frames, handling missing ('-1') values robustly.
+        Accepts table_coords either as:
+          - a dict with keys 'tabley1'..'tabley4' (as returned by gettablecoordinates[frameid])
+          - or as an iterable of (x,y) pairs.
         """
         if segment_frames is None or len(segment_frames) != len(smoothed_positions):
             raise ValueError('segment_frames must be provided and have the same length as smoothed_positions')
+        
+        # Ensure numpy array input
+        smoothed_positions = np.asarray(smoothed_positions)
+        
+        # Normalize table_coords to a list of numeric y-values
+        if isinstance(table_coords, dict):
+            try:
+                table_y_values = [
+                    float(table_coords["tabley1"]),
+                    float(table_coords["tabley2"]),
+                    float(table_coords["tabley3"]),
+                    float(table_coords["tabley4"]),
+                ]
+            except Exception:
+                raise ValueError("table_coords dict must contain numeric 'tabley1'..'tabley4' values")
+        else:
+            # assume iterable of (x,y) pairs
+            try:
+                table_y_values = [float(coord[1]) for coord in table_coords]
+            except Exception:
+                raise ValueError("table_coords must be a dict or an iterable of (x,y) pairs")
+        
+        top_y = min(table_y_values)
+        bottom_y = max(table_y_values)
         
         # Sort by frame number chronologically
         sorted_indices = np.argsort(segment_frames)
@@ -421,9 +448,6 @@ class TrajectoryAnalysisConsumer(Consumer):
         y_interp = s.interpolate(limit_direction="both").values
         
         vy = np.gradient(y_interp)
-        y_values = [coord[1] for coord in table_coords]
-        top_y = min(y_values)
-        bottom_y = max(y_values)
         
         bounce_frames = []
         last_bounce_frame = -999
@@ -546,8 +570,7 @@ class TrajectoryAnalysisConsumer(Consumer):
             bounceframes = self.detect_bounce_points(
                 np.array(valid_interpolated_positions),
                 table_coordinates_data[startframeid],
-                segment_frames=valid_interpolated_frames,
-                startframeid=startframeid,
+                segment_frames=valid_interpolated_frames
             )
         else:
             bounceframes = []
