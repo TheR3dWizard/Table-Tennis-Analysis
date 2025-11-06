@@ -114,31 +114,33 @@ async def main():
 CHUNK_SIZE = 1024 * 1024  # 1 MB
 
 
-async def file_chunker(file_obj: BinaryIO) -> AsyncIterator[bytes]:
-    """Yield the file in chunks without reading it all at once."""
-    while True:
-        chunk = file_obj.read(CHUNK_SIZE)
-        if not chunk:
-            break
-        yield chunk
+async def async_file_chunker(file_path):
+    """Yield file chunks without loading entire file in memory."""
+    with open(file_path, "rb") as f:
+        while True:
+            chunk = f.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            yield chunk
 
-async def upload_video_async(file_path: str) -> dict:
+
+async def upload_video_async(file_path: str, filename: str = None):
+    filename = filename or os.path.basename(file_path)
+
+    async def gen():
+        async for chunk in async_file_chunker(file_path):
+            yield chunk
+
+    # Use streaming multipart upload
+    files = {
+        "file": (filename, gen(), "video/mp4")
+    }
+
     async with httpx.AsyncClient(timeout=None) as client:
-        with open(file_path, "rb") as f:
-            async def gen():
-                async for chunk in file_chunker(f):
-                    yield chunk
+        response = await client.post(BASE_URL, files=files)
 
-            headers = {"Content-Type": "application/octet-stream"}
-
-            response = await client.post(
-                f"{BASE_URL}/upload-video",
-                headers=headers,
-                content=gen()  # pass generator directly; DO NOT call .read()
-            )
-
-        response.raise_for_status()
-        return response.json()
+    response.raise_for_status()
+    return response.json()
 
 
 
