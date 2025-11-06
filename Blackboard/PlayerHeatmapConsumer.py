@@ -45,9 +45,9 @@ class PlayerHeatmapConsumer(Consumer):
             json={"videoId": videoId, "both_player_coords_map": resultMap},
         )
         if response.status_code == 200:
-            self.newprint("Player coordinates updated successfully.")
+            self.newprint("Player coordinates updated successfully.", skipconsole=True, event="updateplayercoords", level="info")
         else:
-            self.newprint(f"Failed to update player coordinates: {response.json()}")
+            self.newprint(f"Failed to update player coordinates: {response.json()}", event="updateplayercoords", level="error")
         return response.json()
 
     def logicfunction(self, messagebody):

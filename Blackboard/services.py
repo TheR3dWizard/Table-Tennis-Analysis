@@ -2,6 +2,7 @@ import urllib.parse
 import psycopg2
 import pika
 from constants import Constants
+from newprint import NewPrint
 
 
 class RabbitMQService:
@@ -78,6 +79,7 @@ class PostgresService:
         self.table = "table_tennis_analysis"
         self.connection = None
         self.VIDEO_TABLE_NAME = "video_table"
+        self.newprint = NewPrint(id="PostgresService").newprint
 
     def encode_filepath(self, filepath):
         """
@@ -229,7 +231,7 @@ class PostgresService:
             command = f"UPDATE {self.table} SET {column_name} = {value} WHERE frameId = {frameid_value} AND videoId = {videoid_value}"
             cursor.execute(command)
             # print the command thats actually being executed
-            print(command)
+            self.newprint(command, event="setcolumnvaluebyframeid", skipconsole=True)
             self.connection.commit()
             # Return the number of rows affected
             return cursor.rowcount > 0

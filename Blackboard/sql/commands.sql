@@ -24,7 +24,7 @@ CREATE TABLE table_tennis_analysis (
     ballxvector FLOAT,
     ballyvector FLOAT,
     ballzvector FLOAT,
-    ballbounce BOOLEAN,
+    ballbounce BOOLEAN DEFAULT FALSE,
     remarks VARCHAR,
     PRIMARY KEY (videoId, frameId)
 );

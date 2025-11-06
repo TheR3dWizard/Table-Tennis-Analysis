@@ -37,7 +37,7 @@ class Consumer:
         self.pgs.connect()
         # self.rabbitmqservice.consume(self.messagecallback, self.queuename)
 
-    def newprint(self, *msgs, end="\n"):
+    def newprint(self, *msgs, end="\n", event="log", skipconsole=False, level="info"):
         # timestamp in [] and id in [] then only message
         # allow multiple message parts (e.g. self.newprint("text", videoId))
         msg = " ".join(str(m) for m in msgs) if msgs else ""
@@ -45,8 +45,10 @@ class Consumer:
         if end is not None and not isinstance(end, str):
             end = str(end)
 
-        line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] [{self.id}] {msg}"
-        print(line, end=end)
+        lokiline = f"[{self.id}] {msg}"
+        logtime = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] "
+        line = logtime + lokiline
+        print(line, end=end) if not skipconsole else None
 
         # Stream the same log line to a local Loki instance at port 3100
         try:
@@ -54,7 +56,7 @@ class Consumer:
             # Loki expects nanosecond epoch as a string
             timestamp_ns = str(int(time.time() * 1e9))
             # include the printed end (if any) in the log line sent to Loki
-            send_line = line + (end if end is not None else "")
+            send_line = lokiline + (end if end is not None else "")
             payload = {
                 "streams": [
                     {
@@ -63,6 +65,9 @@ class Consumer:
                             "consumer_id": self.id,
                             "queue": getattr(self, "queuename", ""),
                             "name": getattr(self, "name", ""),
+                            "event": event,
+                            "level": level,
+                            "session": Constants.SESSION,
                         },
                         "values": [[timestamp_ns, send_line]],
                     }
@@ -79,9 +84,9 @@ class Consumer:
             "consumer_queuename": self.queuename,
             "processable_columns": self.processable_columns,
         }
-        self.newprint(f"{self.name} joining server with message: {message}")
+        self.newprint(f"{self.name} joining server with message: {message}", event="joinserver")
         response = requests.post(f"{self.server}/consumer/join", json=message)
-        self.newprint(f"Server response: {response.json()}")
+        self.newprint(f"Server response: {response.json()}", event="joinserver")
         return response.json()
 
     def threadstart(self):
@@ -106,7 +111,7 @@ class Consumer:
             "endframeid": endframeid,
             "videoid": videoid,
         }
-        self.newprint(f"Placing request... for {columnslist}")
+        self.newprint(f"Placing request... for {columnslist}", event="placerequest")
         # [ABSTRACTED] self.rabbitmqservice.publish(str(message), queue=targetqueue)
         self.hashmap[returnmessageid] = message
         response = requests.post(f"{self.server}/placerequest", json=message)
@@ -124,7 +129,7 @@ class Consumer:
         videoid=1,
     ):
         self.newprint(
-            f"Placing success message... from {self.queuename} to {requestorqueue}"
+            f"Placing success message... from {self.queuename} to {requestorqueue}", event="placesuccess"
         )
         message = {
             "type": "success",
@@ -145,14 +150,15 @@ class Consumer:
         # Perform callback logic with context specific model
         # self.newprint(body)
         if body["type"] == "request":
-            self.newprint(f"\n\n[REQUEST] Message Received:")
+            self.newprint(f"\n\n[REQUEST] Message Received:", event="incomingrequest")
             pprint.pprint(body)
+            self.newprint(body, skipconsole=True, event="incomingrequest")
             self.newprint("\n\n")
 
             logicreturn = self.logic(body)
-            time.sleep(5)  # simulate processing time
+            # time.sleep(5)  # simulate processing time
             if logicreturn:
-                self.newprint("Logic executed successfully, sending success message...")
+                self.newprint("Logic executed successfully, sending success message...", event="logicsuccess")
                 self.placesuccess(
                     body["requestid"],
                     body["requesterid"],
@@ -164,7 +170,9 @@ class Consumer:
                 )
             else:
                 self.newprint(
-                    "Logic execution failed or pending, not sending success message."
+                    "Logic execution failed or pending, not sending success message.",
+                    event="logicfailure",
+                    level="error",
                 )
 
         elif body["type"] == "success":

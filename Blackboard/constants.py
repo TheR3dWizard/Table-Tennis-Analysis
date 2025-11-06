@@ -35,3 +35,4 @@ class Constants:
     POSTGRES_PORT = os.getenv("POSTGRES_PORT", 5432)
     YOLOV8N_WEIGHTS_PATH = os.getenv("YOLOV8N_WEIGHTS_PATH", "../weights/yolov8n.pt")
     YOLO11N_POSE_WEIGHTS_PATH = os.getenv("YOLO11N_POSE_WEIGHTS_PATH", "/Users/akashshanmugaraj/Documents/Personal Projects/Table-Tennis-Analysis/weights/yolo11n-pose.pt")
+    SESSION=os.getenv("SESSION", "session13")

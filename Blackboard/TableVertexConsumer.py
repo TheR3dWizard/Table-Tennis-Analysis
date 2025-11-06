@@ -190,10 +190,13 @@ class TableVertexConsumer(Consumer):
                     },
                 )
                 if response.status_code == 200:
-                    print(f"Updated frame {frameid}, column {column} successfully.")
+                    self.newprint(f"Updated frame {frameid}, column {column} successfully.", skipconsole=True, event="updatecolumn1")
                 else:
-                    print(
-                        f"Failed to update frame {frameid}, column {column}: {response.json()}, response code {response.status_code}"
+                    self.newprint(
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}, response code {response.status_code}",
+                        skipconsole=True,
+                        event="updatecolumn1",
+                        level="error",
                     )
 
     def logicfunction(self, messagebody):

@@ -10,6 +10,7 @@ from datetime import datetime
 from AnsweringMachine import extract_frame_range,classify_question_with_llm,answer_question_1,answer_question2
 import time
 import requests
+from newprint import NewPrint
 
 app = Flask(__name__)
 db = PostgresService(
@@ -23,6 +24,8 @@ else:
         username=Constants.RABBITMQ_USERNAME, password=Constants.RABBITMQ_PASSWORD
     )
     mqtt.connect()
+
+newprint = NewPrint("FlaskServer").newprint
 
 consumer_column_queue_map = {
     "tablex1": "table-vertex-detection",
@@ -112,29 +115,22 @@ def check_and_return():
     except Exception as e:
         return jsonify(error=str(e)), 500
 
-def determineifnone(map, questionclass=0):
-    for key,value in map.items():
-        basecheckset = {"videoid", "frameid", "frameaction", "ballz", "ballzvector", "player1z", "player2z", "remarks", "combinedheatmappath", "depthmappath"}
-        if questionclass == 1:
-            checkset = basecheckset.union({'ballvisibility'})
-        elif questionclass == 2:
-            checkset = basecheckset.union({
-                "player2x",
-                "ballvisibility",
-                "player1y",
-                "ballyvector",
-                "player2y",
-                "ballxvector",
-                "player1x",
-                
-            })
-        else:
-            checkset = basecheckset
-            
-        if key not in checkset and value is None and value != 'ballbounce':
-            print(f"\n\nMissing key '{key}' in {checkset}\n\n")
-            
-            return True
+def determineifnone(inputmap, questionclass=0,frameid=696969):
+    absentkeys = []
+    if questionclass == 1:
+        checkset = set(required_keys[1])
+    else:
+        checkset = set(required_keys[2])
+    
+    for key in checkset:
+        if key not in inputmap:
+            absentkeys.append(f"key:{key} reason: key not in inputmap")
+        elif inputmap[key] is None:
+            absentkeys.append(f"key:{key} reason: value is None")
+    
+    if len(absentkeys) != 0:
+        newprint(f"Missing keys detected: {absentkeys} for frame {frameid} using {questionclass} and checkset {checkset}", skipconsole=True, event="absentkey", level="error")
+        return True
     return False
 
 def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,placerequest,questionclass=0):
@@ -149,9 +145,9 @@ def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,pla
         
         for frameid in range(startframeid, endframeid + 1):
             dbresult = db.get_columns_and_values_by_frameid(frameid, videoid)
-            print("frameid", frameid)
-            pprint.pprint(dbresult)
-            if dbresult is None:
+            newprint(f"frameid: {frameid}", skipconsole=True, event="debug")
+            newprint(f"dbresult: {dbresult}", skipconsole=True, event="debug")
+            if dbresult is None or determineifnone(dbresult,questionclass, frameid=frameid):
                 returnresult['missing_frames'].append(frameid)
                 continue
 
@@ -248,11 +244,15 @@ def placerequest_fun(startframe, endframe, columnslist, videoid, questionclass=0
         "frameid": 197,
         "videoid": videoid
     }
-    t = targetqueue.pop()
-    print(f"placing request to queue {t} for frames {startframe} to {endframe} for columns {columnslist}")
-    time.sleep(5)
-    mqtt.publish(str(msg),t)
-    print(2)
+
+    if "trajectory-analysis" in targetqueue:
+        targetqueue = ["trajectory-analysis"]
+    while len(targetqueue):
+        t = targetqueue.pop()
+        newprint(f"placing request to queue {t} for frames {startframe} to {endframe} for columns {columnslist}", event="requestrouting")
+        time.sleep(5)
+        mqtt.publish(str(msg),t)
+        print(2)
 
 @app.route("/placerequest", methods=["POST"])
 def placerequest():
@@ -385,11 +385,16 @@ def upload_video():
         201,
     )
 
+'''
+NOTE
+i am removing the occurences of the following keys under the following assumption
+    - ballz : we are not computing z coordinate of ball 
+    - ballbounce : ballbounce column is by carachter a sparse column, and `determineifnone` function requires all values to be non-none to pass
+'''
 required_keys = {
     1: [
         "ballx",
         "bally",
-        "ballz",
         "ballxvector",
         "ballyvector",
         "ballzvector",
@@ -413,7 +418,6 @@ required_keys = {
         "ballx",
         "bally",
         "ballbounce",
-        "ballz",
         "tablex1",
         "tabley1",
         "tablex2",
@@ -474,18 +478,18 @@ def ask_question():
     videoid = data.get("videoid")
     if not videoid:
         return jsonify(error="Missing videoid"), 400
-    print(f"video id inside ask-question is {videoid}")
+    newprint(f"video id inside ask-question is {videoid}", event="debug", skipconsole=True)
     question_class = classify_question_with_llm(question)
-    pprint.pprint(f"Classified question '{question}' as class {question_class}")
+    newprint(f"Classified question '{question}' as class {question_class}", event="questionclass", skipconsole=True)
     start_frame,end_frame = extract_frame_range(question)
-    pprint.pprint(f"Extracted frame range {start_frame} to {end_frame} from question")
+    newprint(f"Extracted frame range {start_frame} to {end_frame} from question", event="frameextraction", skipconsole=True)
 
     keys = required_keys[question_class]
     # data = check_and_return_in_range_fun(start_frame,end_frame,keys,videoid,False,question_class)
     # pprint.pprint(f"Data retrieved for frames {start_frame} to {end_frame}")
     # pprint.pprint(data) 
     missingframes = (start_frame, end_frame)
-    pprint.pprint(f"Missing frames for requested data: {missingframes}")
+    # pprint.pprint(f"Missing frames for requested data: {missingframes}")
 
     # Convert missingframes (list of ints) into contiguous (start,end) ranges like [(x,y), (a,b), ...]
     # try:
@@ -521,7 +525,7 @@ def ask_question():
         missingframes = data.get("missing_frames", [])
         if not missingframes:
             break
-        pprint.pprint(f"Still missing frames after {elapsed:.1f}s: {missingframes}. Retrying in {delay}s")
+        newprint(f"Still missing frames after {elapsed:.1f}s: {missingframes}. Retrying in {delay}s", event="exponentialbackoff", level="warn")
         time.sleep(delay)
         elapsed += delay
         delay = min(delay * 2, max_wait - elapsed) if (max_wait - elapsed) > 0 else delay
@@ -560,11 +564,13 @@ def ask_question():
     if question_class == 1:   
         ball_bounces = get_ball_bounces(data)
         if not ball_bounces:
+            newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
             return jsonify(error="No ball bounces found in range", data=data), 404
 
         last_bounce_frame = max(ball_bounces)
         frame_data = data.get(last_bounce_frame) or data.get(str(last_bounce_frame))
         if not frame_data or not isinstance(frame_data, dict):
+            newprint(f"No data found for last bounce frame {last_bounce_frame} in data from check and return {data}", event="no-data-last-bounce", skipconsole=True, level="error")
             return jsonify(
                 error=f"No data found for last bounce frame {last_bounce_frame}", frame=last_bounce_frame
             ), 404
@@ -620,8 +626,7 @@ def ask_question():
     elif question_class == 2:
         ball_bounces = get_ball_bounces(data)
         if not ball_bounces:
-            print("\n\nNo ball bounces found in range\n\n")
-            pprint.pprint(data)
+            newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
             return jsonify(error="No ball bounces found in range", data={str(k): v for k, v in data.items()}), 404
 
 
@@ -640,8 +645,7 @@ def ask_question():
             
 
         if not ball_positions:
-            print("\n\nNo ball position data found in the requested range\n\n")
-            pprint.pprint(data)
+            newprint(f"No ball position data found in the requested range {start_frame}-{end_frame} from check and return {data}", event="no-ball-positions", skipconsole=True, level="error")
             return jsonify(error="No ball position data found in the requested range"), 404
 
         # Table coordinates — pick from the latest frame in range that has table data

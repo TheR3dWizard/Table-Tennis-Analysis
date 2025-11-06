@@ -149,11 +149,16 @@ class Ball2DPositionConsumer(Consumer):
                 )
                 if response.status_code == 200:
                     self.newprint(
-                        f"Updated frame {frameid}, column {column} successfully."
+                        f"Updated frame {frameid}, column {column} successfully.",
+                        skipconsole=True,
+                        event="updatecolumn1",
                     )
                 else:
                     self.newprint(
-                        f"Failed to update frame {frameid}, column {column}: {response.json()}"
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}",
+                        skipconsole=True,
+                        event="updatecolumn1",
+                        level="error",
                     )
 
         return True

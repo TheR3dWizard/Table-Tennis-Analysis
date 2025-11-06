@@ -484,7 +484,7 @@ class TrajectoryAnalysisConsumer(Consumer):
         )
 
         if not ball_coordinates_status:
-            print(f"Missing ball coordinates for frames: {ball_coordinates_data}")
+            self.newprint(f"Missing ball coordinates for frames: {ball_coordinates_data}", event="consumer2consumer")
             # TODO: Check if framestart and end being the same causes any issues downstream
             for missingframestart, missingframeend in ball_coordinates_data:
                 self.placerequest(
@@ -498,7 +498,7 @@ class TrajectoryAnalysisConsumer(Consumer):
             return False
 
         if not table_coordinates_status:
-            print(f"Missing table coordinates for frames: {table_coordinates_data}")
+            self.newprint(f"Missing table coordinates for frames: {table_coordinates_data}", event="consumer2consumer")
             # TODO: Check if framestart and end being the same causes any issues downstream
             for missingframestart, missingframeend in table_coordinates_data:
                 self.placerequest(
@@ -611,14 +611,12 @@ class TrajectoryAnalysisConsumer(Consumer):
                     },
                 )
                 if response.status_code == 200:
-                    print(f"Updated frame {frameid}, column {column} successfully.")
+                    self.newprint(f"Updated frame {frameid}, column {column} successfully.", skipconsole=True, event="updatecolumn1", level="info")
                 else:
-                    print(
-                        f"Failed to update frame {frameid}, column {column}: {response.json()}"
-                    )
+                    self.newprint(f"Failed to update frame {frameid}, column {column}: {response.json()}", skipconsole=True, event="updatecolumn1", level="error")
 
     def saveballpositionresult(self, interpolated_ball_positions, videoId):
-        print("Executing saveballpositionresult.... for ", videoId)
+        self.newprint("Executing saveballpositionresult.... for ", videoId)
 
         for frameid, coords in interpolated_ball_positions.items():
             for column, value in coords.items():
@@ -632,16 +630,14 @@ class TrajectoryAnalysisConsumer(Consumer):
                     },
                 )
                 if response.status_code == 200:
-                    print(f"Updated frame {frameid}, column {column} successfully.")
+                    self.newprint(f"Updated frame {frameid}, column {column} successfully.", skipconsole=True, event="updatecolumn1", level="info")
                 else:
-                    print(
-                        f"Failed to update frame {frameid}, column {column}: {response.json()}"
-                    )
+                    self.newprint(f"Failed to update frame {frameid}, column {column}: {response.json()}", skipconsole=True, event="updatecolumn1", level="error")
 
     def saveballbounce(self, bounceframes, videoId):
-        print("Executing saveballbounce.... for ", videoId)
+        self.newprint(f"Executing saveballbounce.... for ", videoId)
         for frameid in bounceframes:
-            print("Updating bounce for frameid: ", frameid)
+            self.newprint(f"Updating bounce for frameid: ", frameid)
             response = requests.post(
                 f"{self.server}/updatecolumn",
                 json={
@@ -652,13 +648,10 @@ class TrajectoryAnalysisConsumer(Consumer):
                 },
             )
             if response.status_code == 200:
-                print(f"Updated frame {frameid}, column ballbounce successfully.")
+                self.newprint(f"Updated frame {frameid}, column ballbounce successfully.", skipconsole=True, event="updatecolumn1", level="info")
             else:
-                print(
-                    f"Failed to update frame {frameid}, column ballbounce: {response.json()}"
-                )
-        print("Finished updating ballbounce for all frames.")
-
+                self.newprint(f"Failed to update frame {frameid}, column ballbounce: {response.json()}", skipconsole=True, event="updatecolumn1", level="error")
+        self.newprint("Finished updating ballbounce for all frames.", event="finishbounceupdate")
 
 if __name__ == "__main__":
     c1 = TrajectoryAnalysisConsumer(
