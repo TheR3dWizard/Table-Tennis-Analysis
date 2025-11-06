@@ -47,6 +47,13 @@ class TrajectoryAnalysisConsumer(Consumer):
             "ballx",
             "bally",
         ]
+        self.playercoordinatescolumns = [
+            "player1x",
+            "player1y",
+            "player2x",
+            "player2y",
+        ]
+
         self.joinserver()
 
     def groupframesintoranges(self, lst):
@@ -105,6 +112,38 @@ class TrajectoryAnalysisConsumer(Consumer):
             else (False, self.groupframesintoranges(missingframes))
         )
 
+    def getplayercoordinates(self, startframeid, endframeid, videoid):
+        returnmap = dict()
+        missingframes = []
+        for frameid in range(startframeid, endframeid + 1):
+            response = requests.post(
+                f"{self.server}/checkandreturn",
+                json={
+                    "frameid": frameid,
+                    "columns": self.playercoordinatescolumns,
+                    "videoid": videoid,
+                },
+            )
+            data = response.json()
+            if response.status_code == 404 or not data:
+                missingframes.append(frameid)
+                continue
+            if response.status_code == 200:
+                for column in self.playercoordinatescolumns:
+                    if column not in data:
+                        data[column] = None
+                returnmap[frameid] = data
+            else:
+                raise Exception(
+                    f"Failed to get player coordinates for frame {frameid}: {response.json()}"
+                )
+
+        return (
+            (True, returnmap)
+            if not missingframes
+            else (False, self.groupframesintoranges(missingframes))
+        )
+    
     def getballcoordinates(self, startframeid, endframeid, videoid):
         returnmap = dict()
         missingframes = []
@@ -482,6 +521,9 @@ class TrajectoryAnalysisConsumer(Consumer):
         table_coordinates_status, table_coordinates_data = self.gettablecoordinates(
             startframeid, endframeid, messagebody["videoid"]
         )
+        player_coordinates_status, player_coordinates_data = self.getplayercoordinates(
+            startframeid, endframeid, messagebody["videoid"]
+        )
 
         if not ball_coordinates_status:
             self.newprint(f"Missing ball coordinates for frames: {ball_coordinates_data}", event="consumer2consumer")
@@ -503,6 +545,20 @@ class TrajectoryAnalysisConsumer(Consumer):
             for missingframestart, missingframeend in table_coordinates_data:
                 self.placerequest(
                     self.tablecoordinatescolumns,
+                    messagebody["requestid"],
+                    missingframestart,
+                    missingframeend,
+                    videoid=messagebody["videoid"],
+                )
+
+            return False
+        
+        if not player_coordinates_status:
+            self.newprint(f"Missing player coordinates for frames: {player_coordinates_data}", event="consumer2consumer")
+            # TODO: Check if framestart and end being the same causes any issues downstream
+            for missingframestart, missingframeend in player_coordinates_data:
+                self.placerequest(
+                    self.playercoordinatescolumns,
                     messagebody["requestid"],
                     missingframestart,
                     missingframeend,
@@ -580,6 +636,8 @@ class TrajectoryAnalysisConsumer(Consumer):
         """
 
         self.saveresult(
+            startframeid,
+            endframeid,
             interpolated_ball_positions_dict,
             ball_velocities,
             bounceframes,
@@ -589,12 +647,17 @@ class TrajectoryAnalysisConsumer(Consumer):
         return True
 
     def saveresult(
-        self, interpolated_ball_positions, ball_velocities, bounceframes, videoId
+        self, startframeid, endframeid, interpolated_ball_positions, ball_velocities, bounceframes, videoId
     ):
         # TODO: Combine all functions below into one function to reduce repetitive code
         self.saveballpositionresult(interpolated_ball_positions, videoId)
         self.saveballvelocityresult(ball_velocities, videoId)
         self.saveballbounce(bounceframes, videoId)
+        bounceframesset = set(bounceframes)
+        for frameid in range(startframeid, endframeid + 1):
+            if frameid not in bounceframesset:
+                self.newprint(f"Updating antibounce for frameid: ", frameid)
+                self.saveantiballbounce([frameid], videoId)
 
     def saveballvelocityresult(self, ball_velocities, videoId):
         print("Executing saveballvelocityresult.... for ", videoId)
@@ -644,6 +707,25 @@ class TrajectoryAnalysisConsumer(Consumer):
                     "frameid": int(frameid),
                     "column": "ballbounce",
                     "value": True,
+                    "videoid": videoId,
+                },
+            )
+            if response.status_code == 200:
+                self.newprint(f"Updated frame {frameid}, column ballbounce successfully.", skipconsole=True, event="updatecolumn1", level="info")
+            else:
+                self.newprint(f"Failed to update frame {frameid}, column ballbounce: {response.json()}", skipconsole=True, event="updatecolumn1", level="error")
+        self.newprint("Finished updating ballbounce for all frames.", event="finishbounceupdate")
+    
+    def saveantiballbounce(self, bounceframes, videoId):
+        self.newprint(f"Executing saveballbounce.... for ", videoId)
+        for frameid in bounceframes:
+            self.newprint(f"Updating bounce for frameid: ", frameid)
+            response = requests.post(
+                f"{self.server}/updatecolumn",
+                json={
+                    "frameid": int(frameid),
+                    "column": "ballbounce",
+                    "value": False,
                     "videoid": videoId,
                 },
             )
