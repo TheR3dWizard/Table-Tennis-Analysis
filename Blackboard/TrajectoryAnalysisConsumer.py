@@ -393,19 +393,20 @@ class TrajectoryAnalysisConsumer(Consumer):
         # print(f"Corrected {bounce_count} bounce points.")
         return corrected_positions
 
-
     def detect_bounce_points(
         self,
         smoothed_positions,
         table_coords,
         startframeid,
-        proximity_threshold=15,
-        min_velocity_change=0.5,
+        proximity_threshold=50,      # More tolerant proximity
+        min_velocity_change=0.1,     # Lower velocity threshold
         segment_frames=None,
+        min_frame_gap=2,             # Less restrictive frame gap (optionally adjustable)
     ):
         """
         Detect bounce points in the trajectory and return a list of corresponding frame IDs.
-        Each bounce corresponds to a local minimum in the vertical trajectory close to the table.
+        Detects all candidate bounces by finding local minima near either table edge,
+        based on the y-coordinate proximity and velocity profile.
         """
         if smoothed_positions is None or len(smoothed_positions) < 5:
             return []
@@ -413,23 +414,26 @@ class TrajectoryAnalysisConsumer(Consumer):
         y = smoothed_positions[:, 1]
         vy = np.gradient(y)
 
-        # Extract y-coordinates correctly from the table_coords dictionary
-        table_y_values = [
-            table_coords.get("tabley1"),
-            table_coords.get("tabley2"),
-            table_coords.get("tabley3"),
-            table_coords.get("tabley4"),
-        ]
-        if None in table_y_values:
-            raise ValueError("table_coords must contain keys 'tabley1' to 'tabley4'.")
+        # Robust extraction of y-coordinates from both dict and list formats
+        if isinstance(table_coords, dict):
+            table_y_values = [
+                table_coords.get("tabley1"),
+                table_coords.get("tabley2"),
+                table_coords.get("tabley3"),
+                table_coords.get("tabley4"),
+            ]
+            if None in table_y_values:
+                raise ValueError("table_coords must contain keys 'tabley1' to 'tabley4'.")
+        elif isinstance(table_coords, (list, tuple)):
+            table_y_values = [coord[1] if isinstance(coord, (list, tuple)) else coord for coord in table_coords]
+        else:
+            raise ValueError("table_coords must be a dict or a list/tuple of coordinates.")
 
         top_y = min(table_y_values)
         bottom_y = max(table_y_values)
 
         if segment_frames is None or len(segment_frames) != len(y):
-            raise ValueError(
-                "segment_frames must be provided and have the same length as smoothed_positions."
-            )
+            raise ValueError("segment_frames must be provided and have the same length as smoothed_positions.")
 
         bounce_frames = []
         last_bounce_frame = -999
@@ -439,14 +443,16 @@ class TrajectoryAnalysisConsumer(Consumer):
             proximity_top = abs(y_curr - top_y) < proximity_threshold
             proximity_bottom = abs(y_curr - bottom_y) < proximity_threshold
 
-            # Check local minimum
+            # Local minimum check (bounce), near either edge
             if (y_curr < y[i - 1]) and (y_curr < y[i + 1]) and (proximity_top or proximity_bottom):
                 v_change = abs(vy[i - 1] - vy[i + 1])
-                # Ensure distinct bounces separated by at least 3 frames
-                if v_change >= min_velocity_change and (i - last_bounce_frame) > 3:
+                sign_change = vy[i - 1] * vy[i + 1] < 0
+                # Accept bounce if velocity change or sign flip occurs, and min_frame_gap is satisfied
+                if (v_change >= min_velocity_change or sign_change) and (i - last_bounce_frame) > min_frame_gap:
                     bounce_frames.append(segment_frames[i])
                     last_bounce_frame = i
 
+        print("Detected bounce frames:", bounce_frames)
         return bounce_frames
 
     def logicfunction(self, messagebody):
