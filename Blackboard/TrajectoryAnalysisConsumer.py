@@ -393,65 +393,58 @@ class TrajectoryAnalysisConsumer(Consumer):
         # print(f"Corrected {bounce_count} bounce points.")
         return corrected_positions
 
-    def detect_bounce_points(
-        self,
-        smoothed_positions,
-        table_coords,
-        startframeid,
-        proximity_threshold=50,      # More tolerant proximity
-        min_velocity_change=0.1,     # Lower velocity threshold
-        segment_frames=None,
-        min_frame_gap=2,             # Less restrictive frame gap (optionally adjustable)
-    ):
+    
+    def detect_bounce_points(smoothed_positions, table_coords,
+                            proximity_threshold=250,  # Increased significantly
+                            min_velocity_change=8.0,  # Increased to filter noise
+                            min_frame_gap=10,  # Increased to avoid duplicate detections
+                            segment_frames=None):
         """
-        Detect bounce points in the trajectory and return a list of corresponding frame IDs.
-        Detects all candidate bounces by finding local minima near either table edge,
-        based on the y-coordinate proximity and velocity profile.
+        Detect bounce frames, handling missing ('-1') values robustly.
         """
-        if smoothed_positions is None or len(smoothed_positions) < 5:
-            return []
-
-        y = smoothed_positions[:, 1]
-        vy = np.gradient(y)
-
-        # Robust extraction of y-coordinates from both dict and list formats
-        if isinstance(table_coords, dict):
-            table_y_values = [
-                table_coords.get("tabley1"),
-                table_coords.get("tabley2"),
-                table_coords.get("tabley3"),
-                table_coords.get("tabley4"),
-            ]
-            if None in table_y_values:
-                raise ValueError("table_coords must contain keys 'tabley1' to 'tabley4'.")
-        elif isinstance(table_coords, (list, tuple)):
-            table_y_values = [coord[1] if isinstance(coord, (list, tuple)) else coord for coord in table_coords]
-        else:
-            raise ValueError("table_coords must be a dict or a list/tuple of coordinates.")
-
-        top_y = min(table_y_values)
-        bottom_y = max(table_y_values)
-
-        if segment_frames is None or len(segment_frames) != len(y):
-            raise ValueError("segment_frames must be provided and have the same length as smoothed_positions.")
-
+        if segment_frames is None or len(segment_frames) != len(smoothed_positions):
+            raise ValueError('segment_frames must be provided and have the same length as smoothed_positions')
+        
+        # Sort by frame number chronologically
+        sorted_indices = np.argsort(segment_frames)
+        smoothed_positions = smoothed_positions[sorted_indices]
+        segment_frames = [segment_frames[i] for i in sorted_indices]
+        
+        # Convert y to float dtype
+        y = smoothed_positions[:, 1].astype(float)
+        
+        # Replace -1s with np.nan for interpolation
+        y[y == -1] = np.nan
+        
+        # Interpolate missing values
+        s = pd.Series(y)
+        y_interp = s.interpolate(limit_direction="both").values
+        
+        vy = np.gradient(y_interp)
+        y_values = [coord[1] for coord in table_coords]
+        top_y = min(y_values)
+        bottom_y = max(y_values)
+        
         bounce_frames = []
         last_bounce_frame = -999
-
-        for i in range(2, len(y) - 2):
-            y_curr = y[i]
+        
+        for i in range(2, len(y_interp) - 2):
+            y_curr = y_interp[i]
             proximity_top = abs(y_curr - top_y) < proximity_threshold
             proximity_bottom = abs(y_curr - bottom_y) < proximity_threshold
-
-            # Local minimum check (bounce), near either edge
-            if (y_curr < y[i - 1]) and (y_curr < y[i + 1]) and (proximity_top or proximity_bottom):
-                v_change = abs(vy[i - 1] - vy[i + 1])
-                sign_change = vy[i - 1] * vy[i + 1] < 0
-                # Accept bounce if velocity change or sign flip occurs, and min_frame_gap is satisfied
-                if (v_change >= min_velocity_change or sign_change) and (i - last_bounce_frame) > min_frame_gap:
+            
+            # Look for local maxima (peaks in y, where ball reverses downward motion)
+            is_local_maximum = (y_curr > y_interp[i-1]) and (y_curr > y_interp[i+1])
+            
+            if is_local_maximum and (proximity_top or proximity_bottom):
+                v_change = abs(vy[i-1] - vy[i+1])
+                sign_change = vy[i-1] * vy[i+1] < 0
+                
+                # Require significant velocity change AND sign change for bounces
+                if sign_change and v_change >= min_velocity_change and (i - last_bounce_frame) > min_frame_gap:
                     bounce_frames.append(segment_frames[i])
                     last_bounce_frame = i
-
+        
         print("Detected bounce frames:", bounce_frames)
         return bounce_frames
 
