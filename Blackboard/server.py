@@ -131,8 +131,7 @@ def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,pla
             dbresult = db.get_columns_and_values_by_frameid(frameid, videoid)
             print("frameid", frameid)
             pprint.pprint(dbresult)
-            # pprint.pprint(f"Database result for frameid {frameid}: {dbresult}")
-            if dbresult is None:
+            if determineifnone(dbresult):
                 returnresult['missing_frames'].append(frameid)
                 continue
 
@@ -183,7 +182,7 @@ def update_column():
         updated = db.set_column_value_by_frameid(column, value, frameid, videoid)
         if not updated:
             return (
-                jsonify(error=f"Failed to update {column} for frameid {frameid}"),
+                jsonify(error=f"Failed to update {column} for frameid {frameid} for videoid {videoid}"),
                 404,
             )
 
@@ -208,7 +207,8 @@ def update_player_coordinates():
     return jsonify(message="Player coordinates updated successfully")
 
 
-def placerequest_fun(frame,columnslist):
+def placerequest_fun(frame,columnslist, videoid):
+    print(1)
     targetqueue: Set = set(
         [consumer_column_queue_map.get(c, None) for c in columnslist]
     )
@@ -225,9 +225,11 @@ def placerequest_fun(frame,columnslist):
         "startframeid": frame,
         "endframeid": frame+1,
         "frameid": 197,
-        "videoid": 2
+        "videoid": videoid
     }
+    
     mqtt.publish(str(msg),targetqueue.pop())
+    print(2)
 
 @app.route("/placerequest", methods=["POST"])
 def placerequest():
@@ -449,6 +451,7 @@ def ask_question():
     videoid = data.get("videoid")
     if not videoid:
         return jsonify(error="Missing videoid"), 400
+    print(f"video id inside ask-question is {videoid}")
     question_class = classify_question_with_llm(question)
     pprint.pprint(f"Classified question '{question}' as class {question_class}")
     start_frame,end_frame = extract_frame_range(question)
@@ -460,8 +463,12 @@ def ask_question():
     pprint.pprint(data) 
     missingframes = data["missing_frames"]
     pprint.pprint(f"Missing frames for requested data: {missingframes}")
+    c = 0 
     for frame in missingframes:
-        placerequest_fun(frame,keys)
+        c += 1
+        placerequest_fun(frame,keys, videoid)
+    
+    print(c)
     
     time.sleep(5)
     # retry with exponential backoff up to 60 seconds (account for the 5s already slept)

@@ -226,8 +226,10 @@ class PostgresService:
         if not self.connection:
             self.connect()
         with self.connection.cursor() as cursor:
-            command = f"UPDATE {self.table} SET {column_name} = %s WHERE frameId = %s AND videoId = %s"
-            cursor.execute(command, (value, frameid_value, videoid_value))
+            command = f"UPDATE {self.table} SET {column_name} = {value} WHERE frameId = {frameid_value} AND videoId = {videoid_value}"
+            cursor.execute(command)
+            # print the command thats actually being executed
+            print(command)
             self.connection.commit()
             # Return the number of rows affected
             return cursor.rowcount > 0

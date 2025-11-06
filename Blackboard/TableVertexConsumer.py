@@ -161,14 +161,14 @@ class TableVertexConsumer(Consumer):
 
     def construct_return_object(self, returnobject, frameid, tablecoordinates):
         framereturnobject = {
-            "tablex1": tablecoordinates[0],
-            "tabley1": tablecoordinates[1],
-            "tablex2": tablecoordinates[2],
-            "tabley2": tablecoordinates[3],
-            "tablex3": tablecoordinates[4],
-            "tabley3": tablecoordinates[5],
-            "tablex4": tablecoordinates[6],
-            "tabley4": tablecoordinates[7],
+            "tablex1": float(tablecoordinates[0]),
+            "tabley1": float(tablecoordinates[1]),
+            "tablex2": float(tablecoordinates[2]),
+            "tabley2": float(tablecoordinates[3]),
+            "tablex3": float(tablecoordinates[4]),
+            "tabley3": float(tablecoordinates[5]),
+            "tablex4": float(tablecoordinates[6]),
+            "tabley4": float(tablecoordinates[7]),
         }
 
         returnobject[frameid] = framereturnobject
@@ -193,7 +193,7 @@ class TableVertexConsumer(Consumer):
                     print(f"Updated frame {frameid}, column {column} successfully.")
                 else:
                     print(
-                        f"Failed to update frame {frameid}, column {column}: {response.json()}"
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}, response code {response.status_code}"
                     )
 
     def logicfunction(self, messagebody):
