@@ -44,7 +44,34 @@ class Consumer:
         # ensure end is a string or None
         if end is not None and not isinstance(end, str):
             end = str(end)
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] [{self.id}] {msg}", end=end)
+
+        line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] [{self.id}] {msg}"
+        print(line, end=end)
+
+        # Stream the same log line to a local Loki instance at port 3100
+        try:
+            loki_url = "http://localhost:3100/loki/api/v1/push"
+            # Loki expects nanosecond epoch as a string
+            timestamp_ns = str(int(time.time() * 1e9))
+            # include the printed end (if any) in the log line sent to Loki
+            send_line = line + (end if end is not None else "")
+            payload = {
+                "streams": [
+                    {
+                        "stream": {
+                            "job": "consumer",
+                            "consumer_id": self.id,
+                            "queue": getattr(self, "queuename", ""),
+                            "name": getattr(self, "name", ""),
+                        },
+                        "values": [[timestamp_ns, send_line]],
+                    }
+                ]
+            }
+            # short timeout and ignore failures so logging doesn't crash the app
+            requests.post(loki_url, json=payload, timeout=1)
+        except Exception:
+            pass
 
     def joinserver(self):
         message = {
