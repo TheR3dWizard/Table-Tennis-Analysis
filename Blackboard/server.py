@@ -35,7 +35,7 @@ consumer_column_queue_map = {
     "tabley4": "table-vertex-detection",
     "ballx": "ball-2d-position-detection",
     "bally": "ball-2d-position-detection",
-    "ballz": "space-point-searchs",
+    "ballz": "ball-2d-position-detection",
     "ballxvector": "trajectory-analysis",
     "ballyvector": "trajectory-analysis",
     "ballzvector": "trajectory-analysis",
@@ -126,11 +126,14 @@ def determineifnone(map, questionclass=0):
                 "player2y",
                 "ballxvector",
                 "player1x",
+                
             })
         else:
             checkset = basecheckset
             
-        if key not in checkset and value is None:
+        if key not in checkset and value is None and value != 'ballbounce':
+            print(f"\n\nMissing key '{key}' in {checkset}\n\n")
+            
             return True
     return False
 
@@ -143,11 +146,12 @@ def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,pla
         
         returnresult = dict()
         returnresult['missing_frames'] = []
+        
         for frameid in range(startframeid, endframeid + 1):
             dbresult = db.get_columns_and_values_by_frameid(frameid, videoid)
             print("frameid", frameid)
             pprint.pprint(dbresult)
-            if dbresult is None or determineifnone(dbresult, questionclass):
+            if dbresult is None:
                 returnresult['missing_frames'].append(frameid)
                 continue
 
@@ -224,7 +228,8 @@ def update_player_coordinates():
 
 
 def placerequest_fun(startframe, endframe, columnslist, videoid, questionclass=0):
-    print(1)
+    
+    
     targetqueue: Set = set(
         [consumer_column_queue_map.get(c, None) for c in columnslist]
     )
@@ -243,8 +248,10 @@ def placerequest_fun(startframe, endframe, columnslist, videoid, questionclass=0
         "frameid": 197,
         "videoid": videoid
     }
-    
-    mqtt.publish(str(msg),targetqueue.pop())
+    t = targetqueue.pop()
+    print(f"placing request to queue {t} for frames {startframe} to {endframe} for columns {columnslist}")
+    time.sleep(5)
+    mqtt.publish(str(msg),t)
     print(2)
 
 @app.route("/placerequest", methods=["POST"])
@@ -474,34 +481,33 @@ def ask_question():
     pprint.pprint(f"Extracted frame range {start_frame} to {end_frame} from question")
 
     keys = required_keys[question_class]
-    data = check_and_return_in_range_fun(start_frame,end_frame,keys,videoid,False,question_class)
-    pprint.pprint(f"Data retrieved for frames {start_frame} to {end_frame}")
-    pprint.pprint(data) 
-    missingframes = data["missing_frames"]
+    # data = check_and_return_in_range_fun(start_frame,end_frame,keys,videoid,False,question_class)
+    # pprint.pprint(f"Data retrieved for frames {start_frame} to {end_frame}")
+    # pprint.pprint(data) 
+    missingframes = (start_frame, end_frame)
     pprint.pprint(f"Missing frames for requested data: {missingframes}")
 
     # Convert missingframes (list of ints) into contiguous (start,end) ranges like [(x,y), (a,b), ...]
-    try:
-        frames_sorted = sorted(set(missingframes))
-        missing_frame_ranges = []
-        if frames_sorted:
-            start = end = frames_sorted[0]
-            for f in frames_sorted[1:]:
-                if f == end + 1:
-                    end = f
-                else:
-                    missing_frame_ranges.append((start, end))
-                    start = end = f
-            missing_frame_ranges.append((start, end))
-    except Exception:
-        missing_frame_ranges = []
-
+    # try:
+    #     frames_sorted = sorted(set(missingframes))
+    #     missing_frame_ranges = []
+    #     if frames_sorted:
+    #         start = end = frames_sorted[0]
+    #         for f in frames_sorted[1:]:
+    #             if f == end + 1:
+    #                 end = f
+    #             else:
+    #                 missing_frame_ranges.append((start, end))
+    #                 start = end = f
+    #         missing_frame_ranges.append((start, end))
+    # except Exception:
+    #     missing_frame_ranges = []
+    missing_frame_ranges = missingframes
     pprint.pprint(f"Converted missing frames into ranges: {missing_frame_ranges}")
     # keep the original list intact for the existing loop below; if you prefer to iterate ranges instead,
     # you can replace missingframes = missing_frame_ranges
 
-    for rangestart, rangeend in missing_frame_ranges:
-        placerequest_fun(rangestart, rangeend, keys, videoid)
+    placerequest_fun(start_frame, end_frame, keys, videoid)
     
     time.sleep(5)
     # retry with exponential backoff up to 60 seconds (account for the 5s already slept)
@@ -614,7 +620,10 @@ def ask_question():
     elif question_class == 2:
         ball_bounces = get_ball_bounces(data)
         if not ball_bounces:
-            return jsonify(error="No ball bounces found in range", data=data), 404
+            print("\n\nNo ball bounces found in range\n\n")
+            pprint.pprint(data)
+            return jsonify(error="No ball bounces found in range", data={str(k): v for k, v in data.items()}), 404
+
 
         # Collect ball positions for each frame in the requested range
         ball_positions = {}
@@ -631,6 +640,8 @@ def ask_question():
             
 
         if not ball_positions:
+            print("\n\nNo ball position data found in the requested range\n\n")
+            pprint.pprint(data)
             return jsonify(error="No ball position data found in the requested range"), 404
 
         # Table coordinates — pick from the latest frame in range that has table data
