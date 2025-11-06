@@ -3,6 +3,10 @@ from ollama import Client
 import google.generativeai as genai
 import dotenv
 import os
+import time
+import tiktoken
+import subprocess
+import threading
 
 dotenv.load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -13,6 +17,133 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # Initialize Ollama client (ensure Ollama is running on localhost:11434)
 client = Client(host='http://localhost:11434')
+
+# ============ GPU TRACKER ============
+class GPUTracker:
+    def __init__(self):
+        self.peak_memory = 0
+        self.memory_samples = []
+        self.gpu_util_samples = []
+        self.monitoring = False
+        self.thread = None
+    
+    def get_gpu_stats(self):
+        try:
+            result = subprocess.run(
+                ['nvidia-smi', '--query-gpu=memory.used,utilization.gpu', 
+                 '--format=csv,noheader,nounits'],
+                capture_output=True, text=True, timeout=2
+            )
+            if result.returncode == 0:
+                mem_str, util_str = result.stdout.strip().split('\n')[0].split(',')
+                return float(mem_str), float(util_str)
+        except:
+            pass
+        return None, None
+    
+    def monitor_loop(self):
+        while self.monitoring:
+            mem, util = self.get_gpu_stats()
+            if mem is not None:
+                self.memory_samples.append(mem)
+                self.gpu_util_samples.append(util)
+                self.peak_memory = max(self.peak_memory, mem)
+            time.sleep(0.5)
+    
+    def start(self):
+        self.monitoring = True
+        self.memory_samples = []
+        self.gpu_util_samples = []
+        self.peak_memory = 0
+        self.thread = threading.Thread(target=self.monitor_loop, daemon=True)
+        self.thread.start()
+    
+    def stop(self):
+        self.monitoring = False
+        if self.thread:
+            self.thread.join(timeout=2)
+        avg_mem = sum(self.memory_samples) / len(self.memory_samples) if self.memory_samples else 0
+        avg_util = sum(self.gpu_util_samples) / len(self.gpu_util_samples) if self.gpu_util_samples else 0
+        return {
+            'peak_memory_mb': self.peak_memory,
+            'avg_memory_mb': avg_mem,
+            'avg_gpu_util': avg_util
+        }
+
+# ============ TOKENIZER ============
+try:
+    encoding = tiktoken.get_encoding("cl100k_base")
+except:
+    encoding = None
+
+class MetricsTracker:
+    def __init__(self):
+        self.metrics = []
+    
+    def log_call(self, prompt, response, inference_time, gpu_stats):
+        if encoding:
+            prompt_tokens = len(encoding.encode(prompt))
+            response_tokens = len(encoding.encode(response))
+        else:
+            prompt_tokens = len(prompt.split())
+            response_tokens = len(response.split())
+        
+        total_tokens = prompt_tokens + response_tokens
+        tokens_per_second = response_tokens / inference_time if inference_time > 0 else 0
+        
+        response_words = len(response.split())
+        unique_words = len(set(response.split()))
+        sentences = len([s for s in response.split('.') if s.strip()])
+        
+        metric = {
+            'prompt_tokens': prompt_tokens,
+            'response_tokens': response_tokens,
+            'total_tokens': total_tokens,
+            'tokens_per_second': tokens_per_second,
+            'inference_time': inference_time,
+            'response_words': response_words,
+            'unique_words': unique_words,
+            'sentences': sentences,
+            'peak_gpu_mb': gpu_stats['peak_memory_mb'],
+            'avg_gpu_mb': gpu_stats['avg_memory_mb'],
+            'avg_gpu_util': gpu_stats['avg_gpu_util']
+        }
+        self.metrics.append(metric)
+        return metric
+    
+    def print_summary(self):
+        if not self.metrics:
+            print("\n⚠️ No metrics to display")
+            return
+        
+        print("\n" + "="*70)
+        print("PHI-3:3.8B SESSION METRICS SUMMARY")
+        print("="*70)
+        print(f"Total LLM calls: {len(self.metrics)}")
+        
+        total_time = sum(m['inference_time'] for m in self.metrics)
+        total_tokens = sum(m['total_tokens'] for m in self.metrics)
+        avg_tokens_per_sec = sum(m['tokens_per_second'] for m in self.metrics) / len(self.metrics)
+        peak_gpu = max(m['peak_gpu_mb'] for m in self.metrics)
+        avg_gpu = sum(m['avg_gpu_mb'] for m in self.metrics) / len(self.metrics)
+        
+        print(f"Total inference time: {total_time:.2f}s")
+        print(f"Total tokens processed: {total_tokens}")
+        print(f"Average tokens/second: {avg_tokens_per_sec:.2f}")
+        print(f"Peak GPU memory: {peak_gpu:.0f} MB")
+        print(f"Average GPU memory: {avg_gpu:.0f} MB")
+        print("="*70)
+        
+        print("\nPer-Call Breakdown:")
+        for i, m in enumerate(self.metrics, 1):
+            print(f"\nCall {i}:")
+            print(f"  Tokens: {m['prompt_tokens']} → {m['response_tokens']} (total: {m['total_tokens']})")
+            print(f"  Time: {m['inference_time']:.2f}s ({m['tokens_per_second']:.2f} tok/s)")
+            print(f"  GPU: Peak {m['peak_gpu_mb']:.0f}MB, Avg {m['avg_gpu_mb']:.0f}MB, Util {m['avg_gpu_util']:.1f}%")
+        print("="*70 + "\n")
+
+# Global metrics tracker
+metrics_tracker = MetricsTracker()
 
 table_segments = {
     (0.0,0.1):'long',
@@ -35,17 +166,31 @@ def llm_function(question: str) -> str:
     """
     try:
         # Use Ollama client with the phi3 model
+        gpu_tracker = GPUTracker()
+        gpu_tracker.start()
+
+        start_time = time.time()
         resp = client.generate(
             model='phi3:3.8b',
             prompt=question,
             stream=False
         )
 
+        end_time = time.time()
+        
+        gpu_stats = gpu_tracker.stop()
+        inference_time = end_time - start_time
+
         # Normalize response into an object with a .text attribute (existing return expects response.text)
         if isinstance(resp, dict):
             text = resp.get('response') or resp.get('output') or str(resp)
         else:
             text = str(resp)
+        # Log metrics
+        metric = metrics_tracker.log_call(question, text, inference_time, gpu_stats)
+        
+        print(f"\n📊 Call Metrics: {metric['total_tokens']} tokens in {inference_time:.2f}s ({metric['tokens_per_second']:.2f} tok/s)")
+        
         response = type("OllamaResponse", (), {"text": text})()
         
         return response.text.strip()
