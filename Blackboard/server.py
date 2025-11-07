@@ -7,7 +7,7 @@ from constants import Constants
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
-from AnsweringMachine import extract_frame_range,classify_question_with_llm,answer_question_1,answer_question2
+from AnsweringMachine import extract_frame_range,classify_question_with_llm,answer_question_1,answer_question2,llm_function
 import time
 import requests
 from newprint import NewPrint
@@ -588,9 +588,29 @@ def ask_question():
         with yaspin(Spinners.dots, text="Processing question class 1: Analyzing point loss...", color="magenta") as sp:
             ball_bounces = get_ball_bounces(data)
             if not ball_bounces:
+                prompt = f"""
+                You are a table tennis video analysis expert.
+                You are given structured data describing how the ball moved and bounced between specific video frames.
+
+                Context:
+                You are analyzing ball bounce behavior for a frame range.
+
+                Data includes:
+                - Ball positions (x, y) for each frame
+                - Table coordinates
+                - Bounce information with frame number and landing segment (e.g., short, mid, long, left, right, center)
+
+                Data:
+                There is no data in the specified frame range because there are no bounces.
+
+                Task:
+                Explain that there are no ball bounces detected in the provided frame range.
+                """
+                llmans = llm_function(prompt)
+                newprint(f"LLM response for no bounces: {llmans}", event="llm-no-bounces", skipconsole=True)
                 sp.fail("✗")
                 newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
-                return jsonify(error="No ball bounces found in range", data=data), 404
+                return jsonify(error="No ball bounces found in range", data=data,llmans = {}), 200
 
             sp.text = "Finding last bounce frame..."
             last_bounce_frame = max(ball_bounces)
@@ -657,9 +677,30 @@ def ask_question():
         with yaspin(Spinners.dots, text="Processing question class 2: Analyzing ball trajectory...", color="magenta") as sp:
             ball_bounces = get_ball_bounces(data)
             if not ball_bounces:
+                prompt = f"""
+                You are a table tennis video analysis expert.
+                You are given structured data describing how the ball moved and bounced between specific video frames.
+
+                Context:
+                You are analyzing ball bounce behavior for a frame range.
+
+                Data includes:
+                - Ball positions (x, y) for each frame
+                - Table coordinates
+                - Bounce information with frame number and landing segment (e.g., short, mid, long, left, right, center)
+
+                Data:
+                There is no data in the specified frame range because there are no bounces.
+
+                Task:
+                Explain that there are no ball bounces detected in the provided frame range.
+                """
+                llmans = llm_function(prompt)
+                newprint(f"LLM response for no bounces: {llmans}", event="llm-no-bounces", skipconsole=True)
+
                 sp.fail("✗")
                 newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
-                return jsonify(error="No ball bounces found in range", data={str(k): v for k, v in data.items()}), 404
+                return jsonify(error="No ball bounces found in range", data={str(k): v for k, v in data.items()}, analysis=llmans), 404
 
             sp.text = "Collecting ball positions..."
             # Collect ball positions for each frame in the requested range
