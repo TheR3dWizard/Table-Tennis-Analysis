@@ -2,6 +2,7 @@
 *.jpg
 *.docx
 *.pdf
+Datasets/**/*.png
 *.jpeg
 *.webp
 *.npy
