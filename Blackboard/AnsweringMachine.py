@@ -146,12 +146,12 @@ class MetricsTracker:
 metrics_tracker = MetricsTracker()
 
 table_segments = {
-    (0.0,0.1):'long',
-    (0.1,0.4):'mid',
-    (0.4,0.5):'short',
-    (0.5,0.6):'short',
-    (0.6,0.9):'mid',
-    (0.9,15.0):'long',
+    (-1,-0.5):'long',
+    (-0.5,-0.2):'mid',
+    (-0.2,0):'short',
+    (0,0.2):'short',
+    (0.2,0.5):'mid',
+    (0.5,1.0):'long',
 }
 
 def llm_function(question: str) -> str:
