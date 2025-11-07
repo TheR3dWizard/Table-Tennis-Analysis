@@ -1,5 +1,5 @@
 import numpy as np
-
+from newprint import NewPrint
 
 class KalmanTracker:
     """Simplified Kalman filter for segment-based ball tracking."""
@@ -20,13 +20,13 @@ class KalmanTracker:
             "Initialized Kalman tracker with dt=%.2f, process_noise=%.2f, measurement_noise=%.2f"
             % (dt, process_noise, measurement_noise)
         )
+        self.newprint = NewPrint("KalmanTracker").newprint
+        self.newprint("Initialized Kalman tracker", skipconsole=True, event="init")
 
     def predict(self):
         self.state = self.F @ self.state
         self.P = self.F @ self.P @ self.F.T + self.Q
-        print(
-            "Predicted next state: x=%.2f, y=%.2f, vx=%.2f, vy=%.2f" % tuple(self.state)
-        )
+        self.newprint("Predicted next state: x=%.2f, y=%.2f, vx=%.2f, vy=%.2f" % tuple(self.state), skipconsole=True, event="predict")
         return self.state[:2].copy()
 
     def update(self, measurement):
@@ -43,4 +43,4 @@ class KalmanTracker:
         self.P = (np.eye(4) - K @ self.H) @ self.P
         self.history.append(self.state[:2].copy())
         self.confidence.append(1.0)
-        print("Updated state with measurement: x=%.2f, y=%.2f" % tuple(measurement))
+        self.newprint("Updated state with measurement: x=%.2f, y=%.2f" % tuple(measurement), skipconsole=True, event="update")

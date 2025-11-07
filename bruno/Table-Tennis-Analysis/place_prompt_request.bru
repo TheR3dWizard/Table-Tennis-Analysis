@@ -1,0 +1,19 @@
+meta {
+  name: Place TVD Request
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:6060/ask-question
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "videoid": 2,
+    "frameid": 2300,
+    "question": "I need to understand what happened with the ball during the exchange between frames 18080 and 19760. Can you trace its path?"
+  }
+}

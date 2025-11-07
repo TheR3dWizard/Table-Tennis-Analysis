@@ -7,13 +7,16 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{soul}
+\usepackage{multirow}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
 \title{Table Tennis Analysis}
 
-\author{\IEEEauthorblockN{1\textsuperscript{st} Pramodini Padmanaban}
+\author{\IEEEauthorblockN{1\textsuperscript{st} Pramodini Padhmanabhan}
 \IEEEauthorblockA{\textit{Computer Science and Engineering} \\
 \textit{PSG College of Technology}\\
 Coimbatore, India \\
@@ -29,19 +32,19 @@ akashshanmugaraj@gmail.com}
 \IEEEauthorblockA{\textit{Computer Science and Engineering} \\
 \textit{PSG College of Technology}\\
 Coimbatore, India \\
-sanjitharajakumar@gmail.com}
+sanjitha20041234@gmail.com}
 \and
 \IEEEauthorblockN{4\textsuperscript{th} Sreeraghavan Ramamoorthy}
 \IEEEauthorblockA{\textit{Computer Science and Engineering} \\
 \textit{PSG College of Technology}\\
 Coimbatore, India \\
-sreeraghavan16@gmail.com}
+sreeraghavan2016@gmail.com}
 \and
 \IEEEauthorblockN{5\textsuperscript{th} Dwarakesh Prasad}
 \IEEEauthorblockA{\textit{Computer Science and Engineering} \\
 \textit{PSG College of Technology}\\
 Coimbatore, India \\
-dwarakeshp@gmail.com}
+gurudwarkesh@gmail.com}
 }
 
 
@@ -55,9 +58,9 @@ This architecture facilitates flexible integration of diverse analysis component
 We demonstrate the applicability of the system in the domain of sports video analysis, using table tennis match footage as a case study. The proposed design generalizes well to other domains that require fine-grained and interpretable video understanding.
 \end{abstract}
 
-\begin{IEEEkeywords}
-component, formatting, style, styling, insert
-\end{IEEEkeywords}
+% \begin{IEEEkeywords}
+% component, formatting, style, styling, insert
+% \end{IEEEkeywords}
 
 \section{Introduction}
 Among the current mainstream approaches to reasoning, two main paradigms are tightly coupled specialized systems and generalized LLM-based systems. While tightly coupled systems perform very well in their domain, they do not expand well to other domains, and they are difficult and costly to adapt to new domains, often requiring significant re-engineering.. However, although LLMs demonstrate remarkable capabilities in diverse tasks, their reasoning is based on pattern completion rather than grounded, interpretable understanding—making them vulnerable to hallucinations or brittle reasoning.
@@ -74,9 +77,7 @@ This project aims to find out whether combining specialized ML models in a modul
 
 \section{Problem Statement}
 
-This project will build a scalable Table Tennis Video Analysis module—using deep‑learning models (e.g., CNNs and temporal transformers) and efficient 
-
-spatio‑temporal feature extractors to automatically spot serve faults (net hits, illegal tosses), tally rally exchanges, pinpoint bounce locations, and produce player movement insights.
+This project will build a scalable Table Tennis Video Analysis module—using deep‑learning models (e.g., CNNs and temporal transformers) and efficient spatio‑temporal feature extractors to automatically spot serve faults (net hits, illegal tosses), tally rally exchanges, pinpoint bounce locations, and produce player movement insights.
 
 It uses the following core components - object detection, event segmentation, pose estimation, and sequence analysis. These components work together in a modular and agentic architecture, where each component functions as a semi-autonomous "agent" focused on a specialized task. Outputs from individual agents can be integrated to form higher-level insights such as:
 
@@ -156,7 +157,7 @@ Each player's positions form an occurrence grid normalized into a probability he
 The blackboard model of problem solving  has historically inspired architectures that separate memory, control, and expertise\cite{hanllm}. In modern contexts, this abstraction aligns closely with large language model (LLM)-driven multi-agent systems, which integrate blackboard structures with mixture-of-experts (MoE) mechanisms\cite{hanllm}
 
 \subsubsection{Workflow}
-A typical workflow begins with a control unit—itself often an LLM—that decides which specialized agents should act based on the current problem state. These agents contribute their reasoning outputs to a shared blackboard memory, ensuring all subsequent agents operate with the same holistic context. Iterations proceed until convergence, either through consensus or predefined termination conditions.\cite{hanllm}
+A typical workflow begins with a control unit (CU)—itself often an LLM—that decides which specialized agents should act based on the current problem state. These agents contribute their reasoning outputs to a shared blackboard memory, ensuring all subsequent agents operate with the same holistic context. Iterations proceed until convergence, either through consensus or predefined termination conditions.\cite{hanllm}
 
 \subsubsection{Models Used}
 Classical work by Jacobs et al. \cite{amoe} on adaptive mixtures of experts introduced the principle of dividing tasks among specialized models and dynamically weighting their outputs. This idea later scaled into architectures like the sparsely-gated MoE layer \cite{omoe}, which improved efficiency in extremely large neural networks. Recent surveys \cite{smoe} highlight how MoE structures support LLM scalability, while Han \& Zhang [14] demonstrated how coupling them with blackboard coordination improves multi-agent reasoning efficiency.
@@ -164,69 +165,368 @@ Classical work by Jacobs et al. \cite{amoe} on adaptive mixtures of experts intr
 Thus, modern blackboard-based LLM multi-agent systems (bMAS) \cite{hanllm} embody a synthesis: the symbolic transparency of early blackboard systems [10], the adaptability of mixtures of experts \cite{amoe}\cite{moe}, and the scalability insights captured in surveys of MoE research \cite{moe}\cite{smoe}.
 
 \subsection{Blackboard Architecture}
-
-The blackboard-based LLM Multi-Agent System (bMAS) integrates the classical blackboard architecture \cite{nii1986blackboard} into LLM-driven multi-agent systems. By coordinating agents through a shared information space and adaptive scheduling, it avoids rigid workflows and inefficiencies. Its initial implementation, LbMAS, exhibits strong scalability and efficiency \cite{hanllm}.
+The capabilities of a classical Blackboard Architecture allows researchers to take advantage of multi-agent systems in LLM-driven architectures\cite{nii1986blackboard}.
+Agents enjoy flexible and competent workflows by making use of the information sharing and adaptive scheduling features of the blackboard \cite{hanllm}.
+Implementations of LbMAS have shown to be scalable and efficient.
 
 \subsubsection{Workflow}
-The blackboard-based LLM multi-agent system (bMAS) follows an iterative cycle of agent collaboration orchestrated by a control unit \cite{nii1986blackboard}. Each problem-solving session begins with agent generation, where expert roles relevant to the query are instantiated. The control unit then selects appropriate agents and supplies them with the blackboard content. Agents interpret this shared memory, contribute their outputs back to the blackboard, and the process continues until a stopping condition---consensus, a decider’s output, or maximum rounds---is achieved \cite{hanllm}.  
+The blackboard-based LLM multi-agent system (bMAS) undergoes one or more iterations during one problem solving session. 
+Each iteration is an agent orchestration, managed by the Control Unit (CU)\cite{nii1986blackboard}. 
+Each problem-solving session begins with agent generation, where an
+expert skills required based on some query. The CU then selects appropriate agents based on the skills and provides them with the blackboard content. 
+Agents consume and interpret this shared memory, perform computations, contribute their outputs back to the blackboard.
+This whole process continues until some stopping condition is satisfied - either a consensus or a decider’s output or maximum rounds. \cite{hanllm}.  
 
 \subsubsection{Models Used}
-The model is structured around three core components: control unit, blackboard, and LLM-based agents. The control unit, often an LLM itself, decides which agents are relevant at a given stage \cite{hanllm}, thus ensuring efficiency and reducing token consumption. The blackboard functions as shared memory, compartmentalized into public and private spaces, where agents record, debate, and refine their outputs \cite{nii1986blackboard}.  
+Classical Blackboard Architecture has three core components: (1) Control Unit (2) Blackboard (3) Knowledge Sources / Agents.
+The control unit, which could also be an LLM, decides which skills and agents are required at a given stage \cite{hanllm}, thus ensuring efficiency and reducing token consumption. 
+The blackboard functions as shared, persistent memory, with potential to be separated into public and private spaces, where oen or more agents record, debate, and refine their outputs \cite{nii1986blackboard}.  
 
-The agents themselves perform specialized roles like problem decomposition, evaluation of inconsistencies, or solution proposal. Through repeated iterations, the system evolves towards a consensus or majority-approved solution \cite{hanllm}.
+Advanced agents are made capable of special roles like problem decomposition, evaluation of inconsistencies, or solution proposal. 
+The whole system, given enough iterations, converges into one single solution.
+\cite{hanllm}.
 
 \subsection{Action Spotting}
 
 Recent works in sports video analysis highlight how deep learning can be tailored to different game contexts. Giancola et al. (2024) addressed the challenge of action spotting in football videos by building models capable of automatically identifying temporal segments corresponding to key events, showing how large-scale video understanding can reduce reliance on manual annotations \cite{giancola}. Similarly, Voeikov et al. (2020) proposed TTNet for table tennis, a real-time framework that jointly captures temporal and spatial cues to recognize strokes and track the ball with high precision \cite{ttnet}. Together, these approaches emphasize that event localization and fine-grained spatiotemporal modeling are critical for table tennis analysis, where both rapid ball motion and subtle player actions must be detected reliably.
 
 \section{System Design Architecture}
-Say it uses BlackBoard model
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{overall-architecture.png}
+    \caption{Overall System Architecture Diagram}
+    \label{fig:placeholder}
+\end{figure}
+We propose to incorporate the Blackboard Architecture (BA) into multi-agent systems (MASs) so that (1) agents with various roles can share all the information and other's messages during the whole problem-solving process, (2) agents that will take actions are selected based on the current content of the blackboard. 
+
+This architecture enables a complex task solving strategy allowing different knowledge sources to communicate by the means of a common information field instead of a set sequence of actions. 
+We develop the first implementation of this proposal and conduct experiments on \hl{<>}. The results show that our system can be \hl{<>}
+The overall system architecture / workflow is illustrated in Figure 1.
 \subsection{Overview and Motivation}
-content
+As far back as in the 80’s of the last century, the BA was proposed \hl{(Nii, 1986; Hayes-Roth, 1985)} as a decentralized problem solving approach that imitates a group of human experts working together around a shared blackboard and each contributing her/his own solutions to the blackboard until a collective decision is reached. 
+Blackboard Architecture helps a Multi-Agent System (MAS) to utilize collective intelligence to further enhance problem solving performances. 
+Such a timely, iterated process enables a dynamic adaptation of collaboration mechanism among agents.
+
+We intend to incorporate the BA into the Table Tennis MAS and propose the blackboard-based LLM multi-agent system (bMAS) in this paper.
 \subsection{Core Components}
-content
+The BA itself relies on four core components: (1) Blackboard (2) Knowledge Source (3) Communication Interface (4) Control Unit (CU). Information from the Knowledge Sources are stored on the Blackboard and are being subsequently reused by other Knowledge Sources to iteratively approach a solution. 
 \subsubsection{Blackboard}
-content
+The blackboard acts as a central, global data structure accessible by all modules (“knowledge sources”).
+Each module posts intermediate or final results to the blackboard and reacts to changes made by other modules.
+Communication and coordination are achieved indirectly by reading and writing to this shared resource, not through direct inter-module calls.
+
+We have implemented the blackboard as different tables in a Relational Database (Postgres) for production grade data storage for relational data with faster retrievals and consistent read write operations.
+
+The central database schema (see Tables I–VI) functions as the blackboard in our blackboard architecture implementation. 
+All agents post their intermediate states, detected events, and final results solely into this schema, which defines the evolving solution space. 
+This “single source of truth” approach ensures consistency, repeatability, and modularity: modules communicate solely through the blackboard and remain decoupled, except via well-defined database reads/writes. 
+
+This aligns with classical blackboard systems, where the shared data structure orchestrates expert contributions and manages overall task progression.
+
+% Table 1: table_tennis_analysis
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{table\_tennis\_analysis}}
+    \label{tab:ttanalysis}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column}        & \textbf{Type}    & \textbf{Description} \\
+        \hline
+        videoId                & INTEGER         & Unique video identifier \\
+        frameId                & INTEGER         & Frame number within video \\
+        frameAction            & VARCHAR         & Action detected in frame \\
+        tableid                & INTEGER         & Table reference \\
+        ballvisibility         & BOOLEAN         & Is ball visible? \\
+        ballid                 & INTEGER         & Ball reference \\
+        depthMapPath           & VARCHAR         & Path to depth map file \\
+        ballbounce             & BOOLEAN         & Ball bounce event \\
+        remarks                & VARCHAR         & Additional comments \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 2: table_coords
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{table\_coords}}
+    \label{tab:tablecoords}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column} & \textbf{Type} & \textbf{Description} \\
+        \hline
+        tableid   & INTEGER & Table identifier \\
+        tablex1   & FLOAT   & \multirow{8}{*}{Table coordinates} \\
+        tabley1   & FLOAT   &  \\
+        tablex2   & FLOAT   &  \\
+        tabley2   & FLOAT   &  \\
+        tablex3   & FLOAT   &  \\
+        tabley3   & FLOAT   &  \\
+        tablex4   & FLOAT   &  \\
+        tabley4   & FLOAT   &  \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 3: ball_data
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{ball\_data}}
+    \label{tab:balldata}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column} & \textbf{Type} & \textbf{Description} \\
+        \hline
+        ballId          & INTEGER       & Ball identifier \\
+        ballx           & FLOAT         &  \\
+        bally           & FLOAT         & Ball Position \\
+        ballz           & FLOAT         &  \\
+        ballxvector     & FLOAT         &  \\
+        ballyvector     & FLOAT         & Ball Velocity \\
+        ballzvector     & FLOAT         &  \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 4: player_positions
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{player\_positions}}
+    \label{tab:playerpositions}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column} & \textbf{Type} & \textbf{Description} \\
+        \hline
+        playerid        & INTEGER       & Player identifier \\
+        playerx         & FLOAT         & \\
+        playery         & FLOAT         & Player position \\
+        playerz         & FLOAT         & \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 5: bounces
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{bounces}}
+    \label{tab:bounces}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column} & \textbf{Type} & \textbf{Description} \\
+        \hline
+        frameId         & INTEGER       & Frame identifier for bounce event \\
+        ballId          & INTEGER       & Ball identifier for bounce event \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Table 6: video_table
+\begin{table}[ht]
+    \centering
+    \caption{Schema of \texttt{video\_table}}
+    \label{tab:videotable}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Column}           & \textbf{Type}    & \textbf{Description} \\
+        \hline
+        videoId                   & INTEGER         & Video identifier \\
+        videoPath                 & VARCHAR         & Path to video file \\
+        videoName                 & VARCHAR         & Name of video \\
+        videoTag                  & VARCHAR         & Custom video tag/label \\
+        fullvideoHeatmapPath      & VARCHAR         & Path to video heatmap \\
+        videoDotMatrixSource      & VARCHAR         & Path/source for dot matrix map \\
+        \hline
+    \end{tabular}
+\end{table}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Component Interaction Diagram.png}
+    \caption{Component Interaction Diagram. Abbreviation: MC = Message Callback; MQTT = Message Queuing Telemetry Transport;}
+    \label{fig:placeholder}
+\end{figure}
 \subsubsection{Knowledge Sources}
-content
-\subsubsection{Publish Subscribe Model}
-content
+The knowledge source is any set of functions that take some input and generate a result that brings the entire system one step closer to the solution. The input can either be raw data or an output of another knowledge source.
+Each knowledge source ideally has a very specific set of skills that does not overlap with another.
+The individual agents in our system, namely (1) Table Vertex Detection (2) Ball Position Detection (3) Player Heatmap Generation (4) Space Point Estimator and (5) Trajectory Analysis are the knowledge sources. 
+These knowledge sources have been programmatically implemented as objects of their own classes, which are extended from an abstract class which has been illustrated in Figure 3.
+We believe that this approach will contribute to the versatility, diversity and generality of agent introduction at scale.
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Class Diagram.png}
+    \caption{Class Diagram}
+    \label{fig:placeholder}
+\end{figure}
+\subsubsection{Communication Interface}
+The Communication Interface handles the communication between the knowledge sources and is based on the Publish Subscribe Model. This very model is the backbone behind BA, allowing agents share findings and results. 
+We have implemented a Pub-Sub Model using RabbitMQ, an open-source message broker that enables reliable, asynchronous communication between distributed applications by queuing, routing, and delivering messages. Every knowledge source listens for tasks (messages) in a predefined queue and defines a \textit{callback-function}. 
+
+CU places message on the appropriate queue, on behalf of agents, based on the skill required. Agents are triggered using the callback function when their queue gets a message. These agents perform requested operations on the blackboard and send a success message upon completion. 
+
+\subsubsection{Control Unit}
+The knowledge models are loosely coupled via task delegation to the CU. When the ball tracking model requires table coordinates, it submits the request to the CU, without needing awareness of which agent holds or computes this data. 
+Since the CU is preconfigured with the list of knowledge sources, their skill sets, the IDs of the queue that they are listening to, it dynamically resolves and forwards this request to the appropriate agent, which processes and returns the result. 
+
+This approach enables modularity and scalability by decoupling task requesters from the concrete implementers, following the orchestrator-worker pattern commonly employed in multi-agent and event-driven distributed systems
+
+To enhance versatility and support dynamic integration of knowledge sources (agents), the control unit is designed to automatically extract and register the skill set and message queue information of each new consumer as it connects. 
+
+This mechanism enables seamless discovery and on-the-fly integration of new capabilities, without requiring manual configuration or prior knowledge of the agent’s skills. As a result, the control unit serves as a dynamic registry, ensuring efficient routing of tasks based on updated agent capabilities as soon as they are available
+
 \subsection{Component Description}
-content
+These are the knowledge sources that are incorporated into the overall system architecture
 \subsubsection{Table Vertex Detection}
-content
+The results from this module is required by the trajectory analysis module and for answering certain questions by the answering machines. There were certain issues faced during training, however, the resulting module was able to predict the table corners with a low error
+
 \subsubsection{Ball Position Detection}
-content
+The ball detection module serves as a foundational constituent in the proposed table tennis analysis system.It enables precise localization of the ball across frames to facilitate analytics such as trajectory analysis. Accurate ball detection is essential for ensuring the reliability of subsequent modules that depend on spatial and temporal ball movement data.
 \subsubsection{Player Heatmap Generation}
-content
+The player heatmap is a useful tool for user analysis as it shows the behaviour and preferred styles of each player. It provides the positions of each player on every frame using a simple pretrained YOLO model 
 \subsubsection{Space Point Estimator}
-content
+The space point estimator adds an extra layer of insight as it can convert points on a 2D video into 3D coordinates. This is done using the DepthAnythingV2 model. 
 \subsubsection{Trajectory Analysis}
-content
-\subsection{Interaction Model}
-content
-\subsection{System Workflow}
-content
-\section{Methodology}
-content
+The trajectory analysis component delivers accurate ball tracking and motion analysis from high-frame-rate table tennis videos. It automatically extracts the ball’s spatial positions, velocities, and bounce points with high precision, supporting both tactical coaching and detailed player performance evaluation.
+The system reconstructs full ball trajectories by using systematic interpolation to fill in any missing detections. A Kalman filter then refines these trajectories by blending measured data with predictions for smooth and realistic motion. It computes both horizontal and vertical velocity components to analyze key dynamics like speed, acceleration, and approach angle. Finally, detected bounce points are adjusted to align accurately with the table’s standard coordinates, minimizing drift and ensuring consistent precision.
+
 \section{Implementation}
+
+\subsection{Table Vertex Detection}
+This is a crucial model for several other deeper analysis as it provides a sense of space to the 2D video which is useful for trajectory analysis, 3D analysis and certain types of questions. We used a YOLOv8 pose estimation model trained on custom manually and synthetically generated data from the dataset. The pose estimation did not work well with the amount of data present in the dataset.
+
+However, the bounding boxes worked well and were used in the final system. The YOLO model was wrapped in a function that would run the model over a set of frames, average the result and return it for every frame in the given range. This is the final design used in the blackboard system
+
+\subsection{Ball Position Detection}
+A large-scale dataset comprising approximately 88,599 annotated frames was used for model training in the initial stage. However, due to the high computational requirements and limited GPU resources in Google Colab, the complete dataset could not be processed efficiently. To address this, 6,721 frames containing the ball was extracted and used for training. This approach resulted in high loss values, primarily due to the lack of negative samples representing non-ball instances.
+
+To improve model generalization, a balanced dataset consisting of 6,721 labeled ball frames and 2,700 non-ball frames was curated. This combination enabled the model to reducing false detections and improve convergence. The YOLOv11n model was selected for its lightweight architecture, making it suitable for detecting fast and tiny objects.
+
+\subsection{Trajectory Analysis}
+\subsubsection{Framewise Detection Acquisition}
+Each frame of match video is processed using a state-of-the-art deep learning-based object detection model, such as YOLO (You Only Look Once), which is renowned for rapid, accurate localization of small objects like sports balls in diverse lighting and game scenarios. For every frame, the model returns the pixel coordinates (x, y) of the ball center, if detected. This step forms the raw backbone sequence of ball locations.
+
+\subsubsection{Missing Value Handling (Interpolation)}
+Sports videos often suffer from intermittent missed detections - even the best deep learning models can temporarily lose the ball. To maintain trajectory continuity and prevent analytical errors, the pipeline identifies gaps in detection. For gaps no larger than a configurable threshold (e.g., 5 frames), the system applies cubic spline interpolation, leveraging neighboring frames to estimate the ball's position in the missing frames.
+
+\begin{itemize}
+    \item Find all consecutive frames with 'None' in position data.
+    \item For gaps bounded by valid points, estimate missing positions using a cubic spline curve fit (providing both continuity and smoothness).
+\end{itemize}
+
+\subsubsection{Trajectory Filtering (Kalman Filter + Smoothing)}
+The raw or interpolated ball positions still contain noise - due to imperfect detection, jitter, or environmental variation. To address this, a Kalman filter is employed. The filter models the ball's motion and dynamically blends the predicted movement (based on physics) and the observed (potentially noisy) measurements. After Kalman filtering, optional Savitzky-Golay smoothing further polishes the trajectory, suppressing minor jitter and enhancing physical realism.
+
+\begin{itemize}
+    \item Initial ball position/velocity is set from earliest available frames.
+    \item Filter parameters (process vs. measurement noise) are tuned based on video resolution, frame rate, and expected ball dynamics.
+    \item Smoothing window is adapted according to the length of the segment (e.g., 7 frames).
+\end{itemize}
+
+\subsubsection{Bounce Points Detection}
+Bounce events are a crucial kinetic feature in table tennis analytics. The system scans the smoothed vertical trajectory (y-coordinates) for local minima near the table surface. To reliably identify physical bounces and avoid noise, the algorithm also checks for significant sign reversals in vertical velocity - a clear hallmark of a ball contacting the surface and reversing direction.
+
+\begin{itemize}
+    \item For each frame, compare its y-value to adjacent frames (i-1, i, i+1); a local minimum is possible bounce.
+    \item Check the velocity gradient: a sign change indicates motion reversal.
+    \item Only frames within a specified vertical proximity (e.g., within 15 pixels of table top/bottom edge) are considered genuine bounce candidates.
+\end{itemize}
+
+\subsubsection{Bounce Correction (Table Alignment)}
+Detected bounce points may not coincide exactly with canonical table edge coordinates because of detection inaccuracies or video noise. To fix this, candidate bounces within threshold proximity are “snapped” to the exact y-value of the relevant table edge (top or bottom), ensuring consistency and validity for referee and coaching use. This Improves the accuracy of bounce localization.
+
+\subsubsection{Velocity Computation}
+For detailed motion analysis, velocities are essential. After smoothing, the pipeline computes framewise ball velocity by numerical differentiation (gradient) of the x and y position arrays. This yields both the horizontal (ballxvector) and vertical (ballyvector) velocity components, allowing for analysis of speed, energy, and tactical play patterns.
+
+
 content
+\subsection{Space Point Estimator}
+
+The Space Point Estimator module is intended to transform 2D points captured from table tennis video frames into 3D world coordinates, facilitating more comprehensive and spatially precise analytics throughout the entire system. This transformation is accomplished through sophisticated depth estimation utilizing the cutting-edge Depth Anything V2 model.
+
+\subsubsection{Workflow and Process}
+
+When a frame (image) is prepared for depth estimation---such as a video frame with identified table or ball positions---the image path is submitted to the estimator. The procedure unfolds as follows:
+
+\begin{itemize}
+    \item \textbf{Image Input and Preprocessing:} 
+    The estimator acquires the path to a video frame image (for instance, an annotated image with identified ball or keypoints). The image is loaded, transformed into a standardized RGB format utilizing PIL, and its dimensions are documented.
+    
+    \item \textbf{Depth Anything V2 Model Inference:}
+    The foundation of the system employs the Depth Anything V2 model---a transformer-based architecture that has been pre-trained for monocular depth estimation. The image is pre-processed into tensors suitable for the model. Depending on the hardware available, tensors are either transferred to the GPU or retained on the CPU for inference. The model generates a dense depth map, which illustrates per-pixel distance estimations within the scene.
+    
+    \item \textbf{Caching for Efficiency:}
+    To prevent redundant calculations on frequently processed images, the estimator stores depth maps using an MD5 hash of the image file. Subsequent requests for the same frame retrieve the result immediately from the cache.
+
+    \item \textbf{Depth Map Normalization \& Scaling:}
+    The depth map is normalized (all values adjusted to the 0--1 range relative to the depth minima/maxima in the map) and subsequently scaled to the desired metric depth range (e.g., up to 1499~mm) for table tennis analysis.
+
+    \item \textbf{Sub-Pixel 3D Coordinate Retrieval:}
+    For any $(x, y)$ pixel coordinate on the image---such as a ball or player position---the system employs bilinear interpolation on the depth map to derive an accurate $Z$ (depth) coordinate. This enables sub-pixel precision.
+
+    \item \textbf{Output:}
+    The resulting $(x, y, z)$ coordinate for each requested point can now be directly mapped into real-world 3D space, thereby facilitating advanced tactics analysis, bounce point localization, and more.
+\end{itemize}
+\subsubsection{Sample Process Flow}
+
+The method \texttt{getzpointfromxandy()} is invoked with an image (for instance, the annotated frame) and specified pixel coordinates.
+
+The estimator either loads or retrieves the corresponding depth map for that image.
+
+Bilinear interpolation is executed on the depth map utilizing the provided $x$ and $y$ coordinates, resulting in a highly accurate depth ($z$) value.
+
+The resulting $(x, y, z)$ triplet signifies authentic 3D positions, effectively addressing the intrinsic limitations of 2D video footage.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{fixed_depth_result.png}
+    \caption{Depth distribution and inverted depth map produced by the Space Point Estimator.}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsubsection{System Integration}
+
+Within the agentic system, this module functions as a Knowledge Source, supplying 3D information upon demand. Its output is uploaded to the blackboard database, where other agents—such as those responsible for trajectory or bounce analysis—can integrate depth-enhanced data to accomplish spatial and reasoning tasks that were previously unattainable. This facilitates precise coaching feedback, improved trajectory correction, and more comprehensive tactical insights for table tennis analytics.
+
 \section{Experimental Results}
-\begin{table}[htbp]
-\caption{Table Type Styles}
-\begin{center}
-\begin{tabular}{|c|c|c|c|}
-\hline
-\textbf{Table}&\multicolumn{3}{|c|}{\textbf{Table Column Head}} \\
-\cline{2-4} 
-\textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
-\hline
-copy& More table copy$^{\mathrm{a}}$& &  \\
-\hline
-\multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
-\end{tabular}
-\label{tab1}
-\end{center}
+Every module has to be evaluated differently due to the varying nature of our Knowledge Sources. Some are ML models while others are simple data and image processing. The performance metrics of the Knowledge Sources are given below
+
+\subsection{Table Vertex Detection}
+Here, 2 metrics were employed, Bounding Box Overlap, which checks the area of the predicted box that covers the actual object and a custom metric. Metrics such as Precision and Recall aren't informative as the final usage comes from an average over many frames so model performance over individual frames are not used
+
+The custom metric, denoted as Shape Error is used to check the variance in the corner positions predicted by the model scaled against the size of the table in meters. We use these custom metrics as they are more suited to how we actually use the results of this model
+
+\begin{table}[ht]
+    \centering
+    \caption{Results of  \texttt{Table\_Vertex\_Detection}}
+    \label{tab:ttanalysis}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Metric}        & \textbf{Error}    \\
+        \hline
+        Overlap                &  0.6761           \\
+        Shape Error                & 3.5038          \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Ball Position Detection}
+
+Here we use normal metrics such as Precision and Recall along with certain YOLO-specific metrics such as mAP50 and mAP95
+
+\begin{table}[ht]
+    \centering
+    \caption{Results of  \texttt{Ball\_Position\_Detection}}
+    \label{tab:ttanalysis}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Metric}        & \textbf{Error}    \\
+        \hline
+        Precision                &  0.9043           \\
+        Recall                & 0.8622          \\
+        mAP50                & 0.9457          \\
+        mAP50-95                & 0.6136          \\
+        
+        \hline
+    \end{tabular}
 \end{table}
 
 % \begin{figure}[htbp]
@@ -235,7 +535,16 @@ copy& More table copy$^{\mathrm{a}}$& &  \\
 % \label{fig}
 % \end{figure}
 \section{Future Work}
-content
+The Multi-Agent System proposed here operates on static, preconfigured blackboard architecture, which almost often requires manual construction and thus lack generality.
+Recent studies on LLM Based Multi-Agent System (LbMAS) \cite{hanllm} develop autonomous MASs by taking advantage of using a Large Language Model as the control unit. 
+These LLMs can be used to dynamically configure new agents and their skills in runtime, make it much more general and requiring low to none manual setup.
+While, in theory, a static agent configuration is quicker and deterministic, the generality of a dynamic MAS outweighs those disadvantages.  
+
+Further to leverage the use of distributed 
+
+In an age of rapid Cloud and Distributed Computing evolution, our proposal could also be made to take leverage of remote knowledge sources / agents and remote computing resources over a distributed network. 
+Recent studies \cite{agentworkfloworchetration} \cite{distributedblackboard} show promising implementations of MASs with many agents running on different networks/systems.
+Our idea of a highly scalable MAS lies behind the ability to orchestrate and manage each type of knowledge source, individually, using a control unit of its own, taking inspiration from Kubernetes.
 \section{Acknowledgement}
 content
 \bibliographystyle{plain} % or 'unsrt', 'abbrv', etc.

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Tennis Analysis - Video Annotator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏓 Table Tennis Analysis</h1>
+            <p>Upload videos, analyze gameplay, and ask questions about matches</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Video Upload Section -->
+            <section class="card">
+                <h2>📹 Video Upload</h2>
+                <div class="upload-section">
+                    <input type="file" id="videoFile" accept="video/*" style="display: none;">
+                    <button class="btn btn-primary" onclick="document.getElementById('videoFile').click()">
+                        Choose Video File
+                    </button>
+                    <span id="fileName" class="file-name"></span>
+                    <button class="btn btn-success" id="uploadBtn" onclick="uploadVideo()" disabled>
+                        Upload Video
+                    </button>
+                </div>
+                <div class="video-id-section" style="margin-top: 15px;">
+                    <label for="videoIdInput">Video ID (optional, defaults to 3):</label>
+                    <input type="number" id="videoIdInput" value="3" min="1" style="margin-left: 10px; padding: 5px 10px; border: 2px solid #e2e8f0; border-radius: 6px; width: 100px;">
+                </div>
+                <div id="uploadStatus" class="status-message"></div>
+            </section>
+
+            <!-- Video Player Section -->
+            <section class="card" id="videoSection" style="display: none;">
+                <h2>🎬 Video Player</h2>
+                <div class="video-container">
+                    <div class="video-wrapper">
+                        <video id="videoPlayer" controls></video>
+                        <div class="video-overlay">
+                            <div class="overlay-info">
+                                <span id="overlayTime">00:00:00</span>
+                                <span id="overlayFrame">Frame: 0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="video-controls">
+                        <div class="control-group">
+                            <div class="info-item">
+                                <label>Frame:</label>
+                                <span id="currentFrame">0</span> / <span id="totalFrames">0</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Time:</label>
+                                <span id="currentTime">00:00:00</span> / <span id="totalTime">00:00:00</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Playback Speed:</label>
+                                <span id="playbackSpeed">1.00x</span>
+                            </div>
+                        </div>
+                        <div class="control-buttons">
+                            <button class="btn btn-secondary" onclick="seekFrame(-60)" title="Back 60 frames (2s)">⏪⏪ -60</button>
+                            <button class="btn btn-secondary" onclick="seekFrame(-30)" title="Back 30 frames (1s)">⏪ -30</button>
+                            <button class="btn btn-secondary" onclick="seekFrame(-10)" title="Back 10 frames">⏮ -10</button>
+                            <button class="btn btn-secondary" onclick="togglePlayPause()" id="playPauseBtn" title="Space">⏸ Pause</button>
+                            <button class="btn btn-secondary" onclick="seekFrame(10)" title="Forward 10 frames">+10 ⏭</button>
+                            <button class="btn btn-secondary" onclick="seekFrame(30)" title="Forward 30 frames (1s)">+30 ⏩</button>
+                            <button class="btn btn-secondary" onclick="seekFrame(60)" title="Forward 60 frames (2s)">+60 ⏩⏩</button>
+                        </div>
+                        <div class="control-buttons">
+                            <button class="btn btn-speed" onclick="adjustSpeed(-0.25)" title="Decrease speed">-</button>
+                            <button class="btn btn-speed" onclick="adjustSpeed(0.25)" title="Increase speed">+</button>
+                        </div>
+                        <div class="control-buttons">
+                            <button class="btn btn-primary" id="startBtn" onclick="setStartFrame()" title="Press 'S'">
+                                <span class="btn-icon">📍</span> Set Start (S)
+                            </button>
+                            <button class="btn btn-primary" id="endBtn" onclick="setEndFrame()" title="Press 'E'">
+                                <span class="btn-icon">📍</span> Set End (E)
+                            </button>
+                        </div>
+                        <div class="frame-range-display">
+                            <div class="range-item">
+                                <label>Start Frame:</label>
+                                <span id="startFrameDisplay" class="frame-value">-</span>
+                            </div>
+                            <div class="range-item">
+                                <label>End Frame:</label>
+                                <span id="endFrameDisplay" class="frame-value">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="keyboard-hints">
+                        <strong>Keyboard Shortcuts:</strong>
+                        <span>SPACE = Pause/Resume</span>
+                        <span>S = Set Start</span>
+                        <span>E = Set End</span>
+                        <span>←/A = Back 10 frames</span>
+                        <span>→/D = Forward 10 frames</span>
+                        <span>+/- = Adjust Speed</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Question Section -->
+            <section class="card" id="questionSection" style="display: none;">
+                <h2>❓ Ask Question</h2>
+                <div class="question-form">
+                    <div class="frame-range">
+                        <label>Frame Range:</label>
+                        <input type="number" id="startFrame" placeholder="Start" min="0" value="0">
+                        <span>to</span>
+                        <input type="number" id="endFrame" placeholder="End" min="0" value="0">
+                        <button class="btn btn-secondary btn-small" onclick="useCurrentFrameRange()">Use Current Range</button>
+                    </div>
+                    <div class="question-input">
+                        <label for="questionText">Question:</label>
+                        <textarea id="questionText" rows="4" placeholder="Enter your question about the video segment...&#10;Example: 'Why did the player lose the point?' or 'Analyze the ball trajectory from frame X to frame Y'"></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-large" onclick="askQuestion()" id="askQuestionBtn">
+                        Ask Question
+                    </button>
+                </div>
+            </section>
+
+            <!-- Answer Section -->
+            <section class="card" id="answerSection" style="display: none;">
+                <h2>📝 Answer</h2>
+                <div id="answerContent" class="answer-content">
+                    <div class="loading" id="loadingIndicator">
+                        <div class="spinner"></div>
+                        <p>Processing your question...</p>
+                        <p class="loading-subtitle">This may take a few moments</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

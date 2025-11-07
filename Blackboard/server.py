@@ -1,4 +1,5 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
+from matplotlib.style import context
 from services import RabbitMQService, PostgresService
 from typing import Set
 import pprint
@@ -6,15 +7,33 @@ from constants import Constants
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
+from AnsweringMachine import extract_frame_range,classify_question_with_llm,answer_question_1,answer_question2,llm_function
+import time
+import requests
+from newprint import NewPrint
+from yaspin import yaspin
+from yaspin.spinners import Spinners
+import logging
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='')
+
+# Disable Flask/Werkzeug request logging if SERVER_ROUTE_LOGS is false
+if Constants.SERVER_ROUTE_LOGS == "false":
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
 db = PostgresService(
     username=Constants.POSTGRES_USERNAME, password=Constants.POSTGRES_PASSWORD
 )
-mqtt = RabbitMQService(
-    username=Constants.RABBITMQ_USERNAME, password=Constants.RABBITMQ_PASSWORD
-)
-mqtt.connect()
+
+if os.getenv("NO_RABBITMQ", "false").lower() == "true":
+    print("Skipping RabbitMQ connection as NO_RABBITMQ is set to true")
+else:
+    mqtt = RabbitMQService(
+        username=Constants.RABBITMQ_USERNAME, password=Constants.RABBITMQ_PASSWORD
+    )
+    mqtt.connect()
+
+newprint = NewPrint("FlaskServer").newprint
 
 consumer_column_queue_map = {
     "tablex1": "table-vertex-detection",
@@ -27,7 +46,7 @@ consumer_column_queue_map = {
     "tabley4": "table-vertex-detection",
     "ballx": "ball-2d-position-detection",
     "bally": "ball-2d-position-detection",
-    "ballz": "space-point-searchs",
+    "ballz": "ball-2d-position-detection",
     "ballxvector": "trajectory-analysis",
     "ballyvector": "trajectory-analysis",
     "ballzvector": "trajectory-analysis",
@@ -45,7 +64,7 @@ dynamic_consumer_column_queue_map = dict()
 
 @app.route("/")
 def home():
-    return jsonify(message="Welcome to the Table Tennis Analysis Server!")
+    return send_from_directory('static', 'index.html')
 
 
 @app.route("/consumer/join", methods=["POST"])
@@ -83,9 +102,9 @@ def check_and_return():
         frameid = data.get("frameid")
         columnlist = data.get("columns", [])
         videoid = data.get("videoid")
-        pprint.pprint(
-            f"Received check_and_return request for frameid {frameid} and columns {columnlist}"
-        )
+        # pprint.pprint(
+            # f"Received check_and_return request for frameid {frameid} and columns {columnlist}"
+        # )
         if frameid is None or not isinstance(columnlist, list):
             return jsonify(error="Missing or invalid 'frameid' or 'columnlist'"), 400
 
@@ -101,6 +120,70 @@ def check_and_return():
             if column in dbresult and dbresult.get(column) is not None
         }
         return jsonify(result)
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+def determineifnone(inputmap, questionclass=0,frameid=696969):
+    absentkeys = []
+    if questionclass == 1:
+        checkset = set(required_keys[1])
+    else:
+        checkset = set(required_keys[2])
+    
+    for key in checkset:
+        if key not in inputmap:
+            absentkeys.append(f"key:{key} reason: key not in inputmap")
+        elif inputmap[key] is None:
+            absentkeys.append(f"key:{key} reason: value is None")
+    
+    if len(absentkeys) != 0:
+        newprint(f"Missing keys detected: {absentkeys} for frame {frameid} using {questionclass} and checkset {checkset}", skipconsole=True, event="absentkey", level="error")
+        return True
+    return False
+
+def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,placerequest,questionclass=0):
+        # pprint.pprint(
+        #     f"Received check_and_return request for {startframeid} to {endframeid} and columns {columnlist}"
+        # )
+        if startframeid is None or endframeid is None or not isinstance(columnlist, list):
+            return jsonify(error="Missing or invalid 'startframeid', 'endframeid' or 'columnlist'"), 400
+        
+        returnresult = dict()
+        returnresult['missing_frames'] = []
+        
+        for frameid in range(startframeid, endframeid + 1):
+            dbresult = db.get_columns_and_values_by_frameid(frameid, videoid)
+            newprint(f"frameid: {frameid}", skipconsole=True, event="debug")
+            newprint(f"dbresult: {dbresult}", skipconsole=True, event="debug")
+            if dbresult is None or determineifnone(dbresult,questionclass, frameid=frameid):
+                returnresult['missing_frames'].append(frameid)
+                continue
+
+            # result = {column: dbresult.get(column, None) for column in columnlist}
+            result = {
+                column: dbresult.get(column)
+                for column in columnlist
+                if column in dbresult and dbresult.get(column) is not None
+            }
+            returnresult[frameid] = result    
+        return returnresult
+
+
+@app.route("/checkandreturninrange", methods=["POST"])
+def check_and_return_in_range():
+    try:
+        data = request.json
+        if not data:
+            return jsonify(error="Missing JSON body"), 400
+
+        startframeid = data.get("startframeid")
+        endframeid = data.get("endframeid")
+        columnlist = data.get("columns", [])
+        videoid = data.get("videoid")
+        placerequest = data.get("placerequest", False)
+
+        returnresult = check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,placerequest)
+        return jsonify(returnresult)
     except Exception as e:
         return jsonify(error=str(e)), 500
 
@@ -123,7 +206,7 @@ def update_column():
         updated = db.set_column_value_by_frameid(column, value, frameid, videoid)
         if not updated:
             return (
-                jsonify(error=f"Failed to update {column} for frameid {frameid}"),
+                jsonify(error=f"Failed to update {column} for frameid {frameid} for videoid {videoid}"),
                 404,
             )
 
@@ -147,6 +230,37 @@ def update_player_coordinates():
 
     return jsonify(message="Player coordinates updated successfully")
 
+
+def placerequest_fun(startframe, endframe, columnslist, videoid, questionclass=0):
+    
+    
+    targetqueue: Set = set(
+        [consumer_column_queue_map.get(c, None) for c in columnslist]
+    )
+    msg = {
+        "type": "request",
+        "requestid":"bruno-request-100",
+        "requesterid": "bruno-api-client",
+        "returnqueue": "default",
+        "targetid": "table-vertex-detection",
+        "columnslist": [
+        columnslist
+        ],
+        "returnmessageid": "bruno-test-message-100",
+        "startframeid": startframe,
+        "endframeid": endframe,
+        "frameid": 197,
+        "videoid": videoid
+    }
+
+    if "trajectory-analysis" in targetqueue:
+        targetqueue = ["trajectory-analysis"]
+    while len(targetqueue):
+        t = targetqueue.pop()
+        newprint(f"placing request to queue {t} for frames {startframe} to {endframe} for columns {columnslist}", event="requestrouting")
+        time.sleep(5)
+        mqtt.publish(str(msg),t)
+        print(2)
 
 @app.route("/placerequest", methods=["POST"])
 def placerequest():
@@ -221,6 +335,7 @@ def get_video_path_against_id():
 
     return jsonify(videoPath=video_path)
 
+
 @app.route("/insert-bulk-rows", methods=["POST"])
 def insert_bulk_rows():
     data = request.json
@@ -236,12 +351,19 @@ def insert_bulk_rows():
     inserted = db.insertbulkrows(videoid, framestart, numberofrows)
     # if not inserted:
     #     return jsonify(error="Failed to insert bulk rows"), 500
-    return jsonify(message=f"Inserted {numberofrows} rows starting from frame {framestart} for videoid {videoid}"), 201
+    return (
+        jsonify(
+            message=f"Inserted {numberofrows} rows starting from frame {framestart} for videoid {videoid}"
+        ),
+        201,
+    )
+
 
 @app.route("/upload-video", methods=["POST"])
 def upload_video():
     uploaded_file = request.files.get("file")
     if not uploaded_file:
+        print("Missing 'file' in form-data")
         return jsonify(error="Missing 'file' in form-data"), 400
 
     filename_from_body = (
@@ -270,6 +392,375 @@ def upload_video():
         ),
         201,
     )
+
+'''
+NOTE
+i am removing the occurences of the following keys under the following assumption
+    - ballz : we are not computing z coordinate of ball 
+    - ballbounce : ballbounce column is by carachter a sparse column, and `determineifnone` function requires all values to be non-none to pass
+'''
+required_keys = {
+    1: [
+        "ballx",
+        "bally",
+        "ballxvector",
+        "ballyvector",
+        "ballzvector",
+        "ballbounce",
+        "player1x",
+        "player1y",
+        "player1z",
+        "player2x",
+        "player2y",
+        "player2z",
+        "tablex1",
+        "tabley1",
+        "tablex2",
+        "tabley2",
+        "tablex3",
+        "tabley3",
+        "tablex4",
+        "tabley4",
+    ],
+    2: [
+        "ballx",
+        "bally",
+        "ballbounce",
+        "tablex1",
+        "tabley1",
+        "tablex2",
+        "tabley2",
+        "tablex3",
+        "tabley3",
+        "tablex4",
+        "tabley4",
+    ],
+}
+
+def get_ball_bounces(data):
+        bounces = []
+        for key, value in data.items():
+            if key == "missing_frames":
+                continue
+            try:
+                frameid = int(key)
+            except Exception:
+                continue
+            if not isinstance(value, dict):
+                continue
+            ballbounce = value.get("ballbounce")
+            if ballbounce is None:
+                continue
+            if isinstance(ballbounce, bool) and ballbounce:
+                bounces.append(frameid)
+                continue
+            if str(ballbounce).strip().lower() in ("true", "1", "yes"):
+                bounces.append(frameid)
+        return bounces
+
+def get_data_at_frame(data,frameid,columnslist):
+    res = []
+    for key,value in data.items():
+        if key == "missing_frames":
+            continue
+        try:
+            fid = int(key)
+        except Exception:
+            continue
+        if not isinstance(value, dict):
+            continue
+        for column in columnslist:
+            res.append(value.get(column,None))
+    return res
+
+
+@app.route("/ask-question", methods=["POST"])
+def ask_question():
+    data = request.json
+    if not data:
+        return jsonify(error="Missing JSON body"), 400
+
+    question = data.get("question")
+    if not question:
+        return jsonify(error="Missing 'question'"), 400
+    videoid = data.get("videoid")
+    if not videoid:
+        return jsonify(error="Missing videoid"), 400
+    newprint(f"video id inside ask-question is {videoid}", event="debug", skipconsole=True)
+    
+    with yaspin(Spinners.dots, text="Classifying question with LLM...", color="cyan") as sp:
+        question_class = classify_question_with_llm(question)
+        sp.ok("✓")
+    newprint(f"Classified question '{question}' as class {question_class}", event="questionclass", skipconsole=True)
+    
+    with yaspin(Spinners.dots, text="Extracting frame range from question...", color="yellow") as sp:
+        start_frame,end_frame = extract_frame_range(question)
+        sp.ok("✓")
+    newprint(f"Extracted frame range {start_frame} to {end_frame} from question", event="frameextraction", skipconsole=True)
+
+    keys = required_keys[question_class]
+    # data = check_and_return_in_range_fun(start_frame,end_frame,keys,videoid,False,question_class)
+    # pprint.pprint(f"Data retrieved for frames {start_frame} to {end_frame}")
+    # pprint.pprint(data) 
+    missingframes = (start_frame, end_frame)
+    # pprint.pprint(f"Missing frames for requested data: {missingframes}")
+
+    # Convert missingframes (list of ints) into contiguous (start,end) ranges like [(x,y), (a,b), ...]
+    # try:
+    #     frames_sorted = sorted(set(missingframes))
+    #     missing_frame_ranges = []
+    #     if frames_sorted:
+    #         start = end = frames_sorted[0]
+    #         for f in frames_sorted[1:]:
+    #             if f == end + 1:
+    #                 end = f
+    #             else:
+    #                 missing_frame_ranges.append((start, end))
+    #                 start = end = f
+    #         missing_frame_ranges.append((start, end))
+    # except Exception:
+    #     missing_frame_ranges = []
+    missing_frame_ranges = missingframes
+    pprint.pprint(f"Converted missing frames into ranges: {missing_frame_ranges}")
+    # keep the original list intact for the existing loop below; if you prefer to iterate ranges instead,
+    # you can replace missingframes = missing_frame_ranges
+
+    with yaspin(Spinners.line, text="Placing data requests...", color="blue") as sp:
+        placerequest_fun(start_frame, end_frame, keys, videoid)
+        sp.ok("✓")
+    
+    # retry with exponential backoff up to 60 seconds (account for the 5s already slept)
+    max_wait = 600.0
+    delay = 1.0
+    elapsed = 5.0  # already waited above
+
+    # Re-check missing frames until none remain or timeout
+    with yaspin(Spinners.bouncingBar, text="Waiting for data processing...", color="green") as sp:
+        time.sleep(5)  # Initial wait
+        while elapsed < max_wait:
+            data = check_and_return_in_range_fun(start_frame, end_frame, keys, videoid, False, question_class)
+            missingframes = data.get("missing_frames", [])
+            if not missingframes:
+                sp.text = "All data ready!"
+                sp.ok("✓")
+                break
+            sp.text = f"Waiting for data... ({len(missingframes)} frames missing, {elapsed:.1f}s elapsed)"
+            newprint(f"Still missing frames after {elapsed:.1f}s: {missingframes}. Retrying in {delay}s", event="exponentialbackoff", level="warn")
+            time.sleep(delay)
+            elapsed += delay
+            delay = min(delay * 2, max_wait - elapsed) if (max_wait - elapsed) > 0 else delay
+        else:
+            sp.text = "Timeout waiting for data"
+            sp.fail("✗")
+
+
+    # Final evaluation after retries
+    if len(data) == 1:
+        return (
+            jsonify(
+                error="Timeout waiting for requested frames",
+                missing_frames=missingframes,
+                partial_data=data,
+            ),
+            504,
+        )
+
+    '''
+    data = {
+        frameid(int):{
+            columnname(str):value(int)
+        }
+        missingframes:[]
+    }
+    '''
+# def answer_question_1(ball_position, ball_velocity, player_positions, table_coords):
+#     """
+#     From frame x to frame y, why did this player lose the point?
+    
+#     Data needed:
+#         Ball position at last bounce
+#         Ball velocity
+#         Player positions at last bounce
+#         Table coordinates
+#     """
+
+    if question_class == 1:   
+        with yaspin(Spinners.dots, text="Processing question class 1: Analyzing point loss...", color="magenta") as sp:
+            ball_bounces = get_ball_bounces(data)
+            if not ball_bounces:
+                prompt = f"""
+                You are a table tennis video analysis expert.
+                You are given structured data describing how the ball moved and bounced between specific video frames.
+
+                Context:
+                You are analyzing ball bounce behavior for a frame range.
+
+                Data includes:
+                - Ball positions (x, y) for each frame
+                - Table coordinates
+                - Bounce information with frame number and landing segment (e.g., short, mid, long, left, right, center)
+
+                Data:
+                There is no data in the specified frame range because there are no bounces.
+
+                Task:
+                Explain that there are no ball bounces detected in the provided frame range.
+                """
+                llmans = llm_function(prompt)
+                newprint(f"LLM response for no bounces: {llmans}", event="llm-no-bounces", skipconsole=True)
+                sp.fail("✗")
+                newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
+                return jsonify(error="No ball bounces found in range", data=data,llmans = {}), 200
+
+            sp.text = "Finding last bounce frame..."
+            last_bounce_frame = max(ball_bounces)
+            frame_data = data.get(last_bounce_frame) or data.get(str(last_bounce_frame))
+            if not frame_data or not isinstance(frame_data, dict):
+                sp.fail("✗")
+                newprint(f"No data found for last bounce frame {last_bounce_frame} in data from check and return {data}", event="no-data-last-bounce", skipconsole=True, level="error")
+                return jsonify(
+                    error=f"No data found for last bounce frame {last_bounce_frame}", frame=last_bounce_frame
+                ), 404
+
+            sp.text = "Extracting ball and player data..."
+            # Ball position at last bounce
+            ball_position = {
+                "x": frame_data.get("ballx"),
+                "y": frame_data.get("bally"),
+                "z": frame_data.get("ballz"),
+            }
+
+            # Ball velocity (vectors) at last bounce
+            ball_velocity = {
+                "vx": frame_data.get("ballxvector"),
+                "vy": frame_data.get("ballyvector"),
+                "vz": frame_data.get("ballzvector"),
+            }
+
+            # Player positions at last bounce
+            player_positions = {
+                "player1": {
+                    "x": frame_data.get("player1x"),
+                    "y": frame_data.get("player1y"),
+                    "z": frame_data.get("player1z"),
+                },
+                "player2": {
+                    "x": frame_data.get("player2x"),
+                    "y": frame_data.get("player2y"),
+                    "z": frame_data.get("player2z"),
+                },
+            }
+
+            # Table coordinates (four corners)
+            table_coordinates = [
+                (frame_data.get("tablex1"), frame_data.get("tabley1")),
+                (frame_data.get("tablex2"), frame_data.get("tabley2")),
+                (frame_data.get("tablex3"), frame_data.get("tabley3")),
+                (frame_data.get("tablex4"), frame_data.get("tabley4")),
+            ]
+
+            response = {
+                "question_class": question_class,
+                "last_bounce_frame": last_bounce_frame,
+                "ball_position": ball_position,
+                "ball_velocity": ball_velocity,
+                "player_positions": player_positions,
+                "table_coordinates": table_coordinates,
+            }
+
+            sp.text = "Generating answer..."
+            reason = answer_question_1(ball_position, ball_velocity, player_positions, table_coordinates)
+            response["reason"] = reason
+            sp.ok("✓")
+        return jsonify(response), 200
+    elif question_class == 2:
+        with yaspin(Spinners.dots, text="Processing question class 2: Analyzing ball trajectory...", color="magenta") as sp:
+            ball_bounces = get_ball_bounces(data)
+            if not ball_bounces:
+                prompt = f"""
+                You are a table tennis video analysis expert.
+                You are given structured data describing how the ball moved and bounced between specific video frames.
+
+                Context:
+                You are analyzing ball bounce behavior for a frame range.
+
+                Data includes:
+                - Ball positions (x, y) for each frame
+                - Table coordinates
+                - Bounce information with frame number and landing segment (e.g., short, mid, long, left, right, center)
+
+                Data:
+                There is no data in the specified frame range because there are no bounces.
+
+                Task:
+                Explain that there are no ball bounces detected in the provided frame range.
+                """
+                llmans = llm_function(prompt)
+                newprint(f"LLM response for no bounces: {llmans}", event="llm-no-bounces", skipconsole=True)
+
+                sp.fail("✗")
+                newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
+                return jsonify(error="No ball bounces found in range", data={str(k): v for k, v in data.items()}, analysis=llmans), 404
+
+            sp.text = "Collecting ball positions..."
+            # Collect ball positions for each frame in the requested range
+            ball_positions = {}
+            total_frames = end_frame - start_frame + 1
+            for idx, fid in enumerate(range(start_frame, end_frame + 1)):
+                frame_data = data.get(fid) or data.get(str(fid))
+                if not frame_data or not isinstance(frame_data, dict):
+                    continue
+                ball_positions[fid] = {
+                    "x": frame_data.get("ballx"),
+                    "y": frame_data.get("bally"),
+                    "z": frame_data.get("ballz"),
+                }
+                if (idx + 1) % 10 == 0 or idx == total_frames - 1:
+                    sp.text = f"Collecting ball positions... ({idx + 1}/{total_frames} frames)"
+
+            if not ball_positions:
+                sp.fail("✗")
+                newprint(f"No ball position data found in the requested range {start_frame}-{end_frame} from check and return {data}", event="no-ball-positions", skipconsole=True, level="error")
+                return jsonify(error="No ball position data found in the requested range"), 404
+
+            sp.text = "Extracting table coordinates..."
+            # Table coordinates — pick from the latest frame in range that has table data
+            table_coordinates = []
+            for fid in range(end_frame, start_frame - 1, -1):
+                frame_data = data.get(fid) or data.get(str(fid))
+                if not frame_data or not isinstance(frame_data, dict):
+                    continue
+                tx1, ty1 = frame_data.get("tablex1"), frame_data.get("tabley1")
+                tx2, ty2 = frame_data.get("tablex2"), frame_data.get("tabley2")
+                tx3, ty3 = frame_data.get("tablex3"), frame_data.get("tabley3")
+                tx4, ty4 = frame_data.get("tablex4"), frame_data.get("tabley4")
+                if None not in (tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4):
+                    table_coordinates = [
+                        (tx1, ty1),
+                        (tx2, ty2),
+                        (tx3, ty3),
+                        (tx4, ty4),
+                    ]
+                break
+
+            response = {
+                "question_class": question_class,
+                "start_frame": start_frame,
+                "end_frame": end_frame,
+                "ball_positions": ball_positions,
+                "ball_bounces": ball_bounces,
+                "table_coordinates": table_coordinates,
+            }
+
+            sp.text = "Generating trajectory analysis..."
+            # Call the domain-specific analyzer for question type 2
+            analysis = answer_question2(start_frame, end_frame, ball_positions, ball_bounces, table_coordinates)
+            response["analysis"] = analysis
+            sp.ok("✓")
+        return jsonify(response), 200
+
+
+
 
 
 if __name__ == "__main__":

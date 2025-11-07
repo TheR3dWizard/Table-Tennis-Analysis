@@ -7,7 +7,6 @@ Datasets/**/*.png
 *.webp
 *.npy
 *.cache
-*.txt
 *.yaml
 *.json
 *.mp4
@@ -21,6 +20,7 @@ Datasets/**/*.png
 *.yaml
 *.pt
 *.csv
+*.png
 Datasets/Dataset/game1/Clip1/0000.jpg
 Datasets/Dataset/game1/Clip10/Label.csv
 # Datasets/OpenTT/game_1/segmentation_masks/17.png

@@ -31,6 +31,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from constants import Constants
+from tqdm import tqdm
 
 try:
     from scipy.ndimage import gaussian_filter
@@ -147,6 +148,25 @@ def analyze_video(
     model_name = model if model else Constants.YOLO11N_POSE_WEIGHTS_PATH
     yolo_model = YOLO(model_name)
 
+    # Get total frame count for progress bar
+    cap = cv2.VideoCapture(video)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+    
+    # Calculate frames to process
+    if end_frame < 0:
+        frames_to_process = total_frames - start_frame
+    else:
+        frames_to_process = min(end_frame - start_frame + 1, total_frames - start_frame)
+    
+    # Create progress bar
+    progress_bar = tqdm(
+        total=frames_to_process,
+        desc="Determining player coordinates",
+        unit="frame",
+        bar_format="{desc}: {percentage:3.0f}%|{bar}| ({n_fmt}/{total_fmt}) [{elapsed}<{remaining}, {rate_fmt}]"
+    )
+
     track_results = yolo_model.track(
         source=video,
         tracker=tracker or "bytetrack",
@@ -154,6 +174,7 @@ def analyze_video(
         stream=True,
         device=device or None,
         persist=True,
+        verbose=False,  # Suppress YOLO verbose output
     )
 
     player_hips = {}
@@ -161,6 +182,8 @@ def analyze_video(
     per_frame_positions = {}
     sample_frame = None
     frame_index = 0
+    frames_processed = 0
+    frames_with_detections = 0
 
     for r in track_results:
         if frame_index < start_frame:
@@ -196,6 +219,10 @@ def analyze_video(
 
         if ids is None:
             frame_index += 1
+            frames_processed += 1
+            # Update progress bar even if no detections
+            progress_bar.update(1)
+            progress_bar.set_postfix({"Detections": f"{frames_with_detections}/{frames_processed}"})
             continue
 
         parsed_ids = []
@@ -236,7 +263,16 @@ def analyze_video(
 
         if frame_pos:
             per_frame_positions[frame_index] = frame_pos
+            frames_with_detections += 1
+        
         frame_index += 1
+        frames_processed += 1
+        
+        # Update progress bar
+        progress_bar.update(1)
+        progress_bar.set_postfix({"Detections": f"{frames_with_detections}/{frames_processed}"})
+
+    progress_bar.close()
 
     if sample_frame is None:
         return {}, ""
@@ -251,6 +287,15 @@ def analyze_video(
         filtered_ids = filtered_ids[:num_players]
 
     selected_ids = filtered_ids
+    # Unique filename using hash(video path + start/end) + timestamp
+    hasher = hashlib.md5()
+    hasher.update(str(video).encode("utf-8"))
+    hasher.update(str(start_frame).encode("utf-8"))
+    hasher.update(str(end_frame).encode("utf-8"))
+    hash_part = hasher.hexdigest()[:8]
+    ts_part = datetime.now().strftime("%Y%m%d_%H%M%S")
+    overlay_name = f"combined_heatmap_overlay_{hash_part}_{ts_part}.png"
+    overlay_path = os.path.join(out_dir, overlay_name)
 
     # Build frame map for selected players (player1 -> selected_ids[0], player2 -> selected_ids[1] if exists)
     frame_map = {}
@@ -271,6 +316,7 @@ def analyze_video(
             "player2x": x2,
             "player2y": y2,
             "player2z": -1,
+            "combinedheatmappath": overlay_path,
         }
 
     # Heatmaps for selected players only
@@ -307,15 +353,6 @@ def analyze_video(
         sample_frame, 0.6, cv2.cvtColor(colored, cv2.COLOR_RGB2BGR), 0.4, 0
     )
 
-    # Unique filename using hash(video path + start/end) + timestamp
-    hasher = hashlib.md5()
-    hasher.update(str(video).encode("utf-8"))
-    hasher.update(str(start_frame).encode("utf-8"))
-    hasher.update(str(end_frame).encode("utf-8"))
-    hash_part = hasher.hexdigest()[:8]
-    ts_part = datetime.now().strftime("%Y%m%d_%H%M%S")
-    overlay_name = f"combined_heatmap_overlay_{hash_part}_{ts_part}.png"
-    overlay_path = os.path.join(out_dir, overlay_name)
 
     cv2.imwrite(overlay_path, overlay)
     cv2.imwrite(os.path.join(out_dir, "combined_heatmap_gray.png"), norm)
