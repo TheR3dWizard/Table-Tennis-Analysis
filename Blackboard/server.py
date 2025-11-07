@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from matplotlib.style import context
 from services import RabbitMQService, PostgresService
 from typing import Set
@@ -15,7 +15,7 @@ from yaspin import yaspin
 from yaspin.spinners import Spinners
 import logging
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='')
 
 # Disable Flask/Werkzeug request logging if SERVER_ROUTE_LOGS is false
 if Constants.SERVER_ROUTE_LOGS == "false":
@@ -64,7 +64,7 @@ dynamic_consumer_column_queue_map = dict()
 
 @app.route("/")
 def home():
-    return jsonify(message="Welcome to the Table Tennis Analysis Server!")
+    return send_from_directory('static', 'index.html')
 
 
 @app.route("/consumer/join", methods=["POST"])
