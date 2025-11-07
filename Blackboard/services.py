@@ -228,10 +228,11 @@ class PostgresService:
         if not self.connection:
             self.connect()
         with self.connection.cursor() as cursor:
-            command = f"UPDATE {self.table} SET {column_name} = {value} WHERE frameId = {frameid_value} AND videoId = {videoid_value}"
-            cursor.execute(command)
-            # print the command thats actually being executed
-            self.newprint(command, event="setcolumnvaluebyframeid", skipconsole=True)
+            # Use parameterized query to properly handle string values and prevent SQL injection
+            command = f"UPDATE {self.table} SET {column_name} = %s WHERE frameId = %s AND videoId = %s"
+            # Log the command with values for debugging (but use parameterized query for execution)
+            self.newprint(f"UPDATE {self.table} SET {column_name} = {repr(value)} WHERE frameId = {frameid_value} AND videoId = {videoid_value}", event="setcolumnvaluebyframeid", skipconsole=True)
+            cursor.execute(command, (value, frameid_value, videoid_value))
             self.connection.commit()
             # Return the number of rows affected
             return cursor.rowcount > 0

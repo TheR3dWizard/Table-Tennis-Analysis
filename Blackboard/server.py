@@ -11,8 +11,16 @@ from AnsweringMachine import extract_frame_range,classify_question_with_llm,answ
 import time
 import requests
 from newprint import NewPrint
+from yaspin import yaspin
+from yaspin.spinners import Spinners
+import logging
 
 app = Flask(__name__)
+
+# Disable Flask/Werkzeug request logging if SERVER_ROUTE_LOGS is false
+if Constants.SERVER_ROUTE_LOGS == "false":
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
 db = PostgresService(
     username=Constants.POSTGRES_USERNAME, password=Constants.POSTGRES_PASSWORD
 )
@@ -94,9 +102,9 @@ def check_and_return():
         frameid = data.get("frameid")
         columnlist = data.get("columns", [])
         videoid = data.get("videoid")
-        pprint.pprint(
-            f"Received check_and_return request for frameid {frameid} and columns {columnlist}"
-        )
+        # pprint.pprint(
+            # f"Received check_and_return request for frameid {frameid} and columns {columnlist}"
+        # )
         if frameid is None or not isinstance(columnlist, list):
             return jsonify(error="Missing or invalid 'frameid' or 'columnlist'"), 400
 
@@ -134,9 +142,9 @@ def determineifnone(inputmap, questionclass=0,frameid=696969):
     return False
 
 def check_and_return_in_range_fun(startframeid,endframeid,columnlist,videoid,placerequest,questionclass=0):
-        pprint.pprint(
-            f"Received check_and_return request for {startframeid} to {endframeid} and columns {columnlist}"
-        )
+        # pprint.pprint(
+        #     f"Received check_and_return request for {startframeid} to {endframeid} and columns {columnlist}"
+        # )
         if startframeid is None or endframeid is None or not isinstance(columnlist, list):
             return jsonify(error="Missing or invalid 'startframeid', 'endframeid' or 'columnlist'"), 400
         
@@ -479,9 +487,15 @@ def ask_question():
     if not videoid:
         return jsonify(error="Missing videoid"), 400
     newprint(f"video id inside ask-question is {videoid}", event="debug", skipconsole=True)
-    question_class = classify_question_with_llm(question)
+    
+    with yaspin(Spinners.dots, text="Classifying question with LLM...", color="cyan") as sp:
+        question_class = classify_question_with_llm(question)
+        sp.ok("✓")
     newprint(f"Classified question '{question}' as class {question_class}", event="questionclass", skipconsole=True)
-    start_frame,end_frame = extract_frame_range(question)
+    
+    with yaspin(Spinners.dots, text="Extracting frame range from question...", color="yellow") as sp:
+        start_frame,end_frame = extract_frame_range(question)
+        sp.ok("✓")
     newprint(f"Extracted frame range {start_frame} to {end_frame} from question", event="frameextraction", skipconsole=True)
 
     keys = required_keys[question_class]
@@ -511,24 +525,33 @@ def ask_question():
     # keep the original list intact for the existing loop below; if you prefer to iterate ranges instead,
     # you can replace missingframes = missing_frame_ranges
 
-    placerequest_fun(start_frame, end_frame, keys, videoid)
+    with yaspin(Spinners.line, text="Placing data requests...", color="blue") as sp:
+        placerequest_fun(start_frame, end_frame, keys, videoid)
+        sp.ok("✓")
     
-    time.sleep(5)
     # retry with exponential backoff up to 60 seconds (account for the 5s already slept)
     max_wait = 600.0
     delay = 1.0
     elapsed = 5.0  # already waited above
 
     # Re-check missing frames until none remain or timeout
-    while elapsed < max_wait:
-        data = check_and_return_in_range_fun(start_frame, end_frame, keys, videoid, False, question_class)
-        missingframes = data.get("missing_frames", [])
-        if not missingframes:
-            break
-        newprint(f"Still missing frames after {elapsed:.1f}s: {missingframes}. Retrying in {delay}s", event="exponentialbackoff", level="warn")
-        time.sleep(delay)
-        elapsed += delay
-        delay = min(delay * 2, max_wait - elapsed) if (max_wait - elapsed) > 0 else delay
+    with yaspin(Spinners.bouncingBar, text="Waiting for data processing...", color="green") as sp:
+        time.sleep(5)  # Initial wait
+        while elapsed < max_wait:
+            data = check_and_return_in_range_fun(start_frame, end_frame, keys, videoid, False, question_class)
+            missingframes = data.get("missing_frames", [])
+            if not missingframes:
+                sp.text = "All data ready!"
+                sp.ok("✓")
+                break
+            sp.text = f"Waiting for data... ({len(missingframes)} frames missing, {elapsed:.1f}s elapsed)"
+            newprint(f"Still missing frames after {elapsed:.1f}s: {missingframes}. Retrying in {delay}s", event="exponentialbackoff", level="warn")
+            time.sleep(delay)
+            elapsed += delay
+            delay = min(delay * 2, max_wait - elapsed) if (max_wait - elapsed) > 0 else delay
+        else:
+            sp.text = "Timeout waiting for data"
+            sp.fail("✗")
 
 
     # Final evaluation after retries
@@ -562,124 +585,137 @@ def ask_question():
 #     """
 
     if question_class == 1:   
-        ball_bounces = get_ball_bounces(data)
-        if not ball_bounces:
-            newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
-            return jsonify(error="No ball bounces found in range", data=data), 404
+        with yaspin(Spinners.dots, text="Processing question class 1: Analyzing point loss...", color="magenta") as sp:
+            ball_bounces = get_ball_bounces(data)
+            if not ball_bounces:
+                sp.fail("✗")
+                newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
+                return jsonify(error="No ball bounces found in range", data=data), 404
 
-        last_bounce_frame = max(ball_bounces)
-        frame_data = data.get(last_bounce_frame) or data.get(str(last_bounce_frame))
-        if not frame_data or not isinstance(frame_data, dict):
-            newprint(f"No data found for last bounce frame {last_bounce_frame} in data from check and return {data}", event="no-data-last-bounce", skipconsole=True, level="error")
-            return jsonify(
-                error=f"No data found for last bounce frame {last_bounce_frame}", frame=last_bounce_frame
-            ), 404
-
-        # Ball position at last bounce
-        ball_position = {
-            "x": frame_data.get("ballx"),
-            "y": frame_data.get("bally"),
-            "z": frame_data.get("ballz"),
-        }
-
-        # Ball velocity (vectors) at last bounce
-        ball_velocity = {
-            "vx": frame_data.get("ballxvector"),
-            "vy": frame_data.get("ballyvector"),
-            "vz": frame_data.get("ballzvector"),
-        }
-
-        # Player positions at last bounce
-        player_positions = {
-            "player1": {
-                "x": frame_data.get("player1x"),
-                "y": frame_data.get("player1y"),
-                "z": frame_data.get("player1z"),
-            },
-            "player2": {
-                "x": frame_data.get("player2x"),
-                "y": frame_data.get("player2y"),
-                "z": frame_data.get("player2z"),
-            },
-        }
-
-        # Table coordinates (four corners)
-        table_coordinates = [
-            (frame_data.get("tablex1"), frame_data.get("tabley1")),
-            (frame_data.get("tablex2"), frame_data.get("tabley2")),
-            (frame_data.get("tablex3"), frame_data.get("tabley3")),
-            (frame_data.get("tablex4"), frame_data.get("tabley4")),
-        ]
-
-        response = {
-            "question_class": question_class,
-            "last_bounce_frame": last_bounce_frame,
-            "ball_position": ball_position,
-            "ball_velocity": ball_velocity,
-            "player_positions": player_positions,
-            "table_coordinates": table_coordinates,
-        }
-
-        reason = answer_question_1(ball_position, ball_velocity, player_positions, table_coordinates)
-        response["reason"] = reason
-        return jsonify(response), 200
-    elif question_class == 2:
-        ball_bounces = get_ball_bounces(data)
-        if not ball_bounces:
-            newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
-            return jsonify(error="No ball bounces found in range", data={str(k): v for k, v in data.items()}), 404
-
-
-        # Collect ball positions for each frame in the requested range
-        ball_positions = {}
-        for fid in range(start_frame, end_frame + 1):
-            print(fid)
-            frame_data = data.get(fid) or data.get(str(fid))
+            sp.text = "Finding last bounce frame..."
+            last_bounce_frame = max(ball_bounces)
+            frame_data = data.get(last_bounce_frame) or data.get(str(last_bounce_frame))
             if not frame_data or not isinstance(frame_data, dict):
-                continue
-            ball_positions[fid] = {
+                sp.fail("✗")
+                newprint(f"No data found for last bounce frame {last_bounce_frame} in data from check and return {data}", event="no-data-last-bounce", skipconsole=True, level="error")
+                return jsonify(
+                    error=f"No data found for last bounce frame {last_bounce_frame}", frame=last_bounce_frame
+                ), 404
+
+            sp.text = "Extracting ball and player data..."
+            # Ball position at last bounce
+            ball_position = {
                 "x": frame_data.get("ballx"),
                 "y": frame_data.get("bally"),
                 "z": frame_data.get("ballz"),
             }
-            
 
-        if not ball_positions:
-            newprint(f"No ball position data found in the requested range {start_frame}-{end_frame} from check and return {data}", event="no-ball-positions", skipconsole=True, level="error")
-            return jsonify(error="No ball position data found in the requested range"), 404
+            # Ball velocity (vectors) at last bounce
+            ball_velocity = {
+                "vx": frame_data.get("ballxvector"),
+                "vy": frame_data.get("ballyvector"),
+                "vz": frame_data.get("ballzvector"),
+            }
 
-        # Table coordinates — pick from the latest frame in range that has table data
-        table_coordinates = []
-        for fid in range(end_frame, start_frame - 1, -1):
-            frame_data = data.get(fid) or data.get(str(fid))
-            if not frame_data or not isinstance(frame_data, dict):
-                continue
-            tx1, ty1 = frame_data.get("tablex1"), frame_data.get("tabley1")
-            tx2, ty2 = frame_data.get("tablex2"), frame_data.get("tabley2")
-            tx3, ty3 = frame_data.get("tablex3"), frame_data.get("tabley3")
-            tx4, ty4 = frame_data.get("tablex4"), frame_data.get("tabley4")
-            if None not in (tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4):
-                table_coordinates = [
-                    (tx1, ty1),
-                    (tx2, ty2),
-                    (tx3, ty3),
-                    (tx4, ty4),
-                ]
-            break
+            # Player positions at last bounce
+            player_positions = {
+                "player1": {
+                    "x": frame_data.get("player1x"),
+                    "y": frame_data.get("player1y"),
+                    "z": frame_data.get("player1z"),
+                },
+                "player2": {
+                    "x": frame_data.get("player2x"),
+                    "y": frame_data.get("player2y"),
+                    "z": frame_data.get("player2z"),
+                },
+            }
 
-        response = {
-            "question_class": question_class,
-            "start_frame": start_frame,
-            "end_frame": end_frame,
-            "ball_positions": ball_positions,
-            "ball_bounces": ball_bounces,
-            "table_coordinates": table_coordinates,
-        }
+            # Table coordinates (four corners)
+            table_coordinates = [
+                (frame_data.get("tablex1"), frame_data.get("tabley1")),
+                (frame_data.get("tablex2"), frame_data.get("tabley2")),
+                (frame_data.get("tablex3"), frame_data.get("tabley3")),
+                (frame_data.get("tablex4"), frame_data.get("tabley4")),
+            ]
 
-        # Call the domain-specific analyzer for question type 2
-        analysis = answer_question2(start_frame, end_frame, ball_positions, ball_bounces, table_coordinates)
-        response["analysis"] = analysis
+            response = {
+                "question_class": question_class,
+                "last_bounce_frame": last_bounce_frame,
+                "ball_position": ball_position,
+                "ball_velocity": ball_velocity,
+                "player_positions": player_positions,
+                "table_coordinates": table_coordinates,
+            }
 
+            sp.text = "Generating answer..."
+            reason = answer_question_1(ball_position, ball_velocity, player_positions, table_coordinates)
+            response["reason"] = reason
+            sp.ok("✓")
+        return jsonify(response), 200
+    elif question_class == 2:
+        with yaspin(Spinners.dots, text="Processing question class 2: Analyzing ball trajectory...", color="magenta") as sp:
+            ball_bounces = get_ball_bounces(data)
+            if not ball_bounces:
+                sp.fail("✗")
+                newprint(f"No ball bounces found in range {start_frame}-{end_frame} data from check and return {data}", event="no-bounces", skipconsole=True, level="error")
+                return jsonify(error="No ball bounces found in range", data={str(k): v for k, v in data.items()}), 404
+
+            sp.text = "Collecting ball positions..."
+            # Collect ball positions for each frame in the requested range
+            ball_positions = {}
+            total_frames = end_frame - start_frame + 1
+            for idx, fid in enumerate(range(start_frame, end_frame + 1)):
+                frame_data = data.get(fid) or data.get(str(fid))
+                if not frame_data or not isinstance(frame_data, dict):
+                    continue
+                ball_positions[fid] = {
+                    "x": frame_data.get("ballx"),
+                    "y": frame_data.get("bally"),
+                    "z": frame_data.get("ballz"),
+                }
+                if (idx + 1) % 10 == 0 or idx == total_frames - 1:
+                    sp.text = f"Collecting ball positions... ({idx + 1}/{total_frames} frames)"
+
+            if not ball_positions:
+                sp.fail("✗")
+                newprint(f"No ball position data found in the requested range {start_frame}-{end_frame} from check and return {data}", event="no-ball-positions", skipconsole=True, level="error")
+                return jsonify(error="No ball position data found in the requested range"), 404
+
+            sp.text = "Extracting table coordinates..."
+            # Table coordinates — pick from the latest frame in range that has table data
+            table_coordinates = []
+            for fid in range(end_frame, start_frame - 1, -1):
+                frame_data = data.get(fid) or data.get(str(fid))
+                if not frame_data or not isinstance(frame_data, dict):
+                    continue
+                tx1, ty1 = frame_data.get("tablex1"), frame_data.get("tabley1")
+                tx2, ty2 = frame_data.get("tablex2"), frame_data.get("tabley2")
+                tx3, ty3 = frame_data.get("tablex3"), frame_data.get("tabley3")
+                tx4, ty4 = frame_data.get("tablex4"), frame_data.get("tabley4")
+                if None not in (tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4):
+                    table_coordinates = [
+                        (tx1, ty1),
+                        (tx2, ty2),
+                        (tx3, ty3),
+                        (tx4, ty4),
+                    ]
+                break
+
+            response = {
+                "question_class": question_class,
+                "start_frame": start_frame,
+                "end_frame": end_frame,
+                "ball_positions": ball_positions,
+                "ball_bounces": ball_bounces,
+                "table_coordinates": table_coordinates,
+            }
+
+            sp.text = "Generating trajectory analysis..."
+            # Call the domain-specific analyzer for question type 2
+            analysis = answer_question2(start_frame, end_frame, ball_positions, ball_bounces, table_coordinates)
+            response["analysis"] = analysis
+            sp.ok("✓")
         return jsonify(response), 200
 
 

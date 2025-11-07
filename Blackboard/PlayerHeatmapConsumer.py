@@ -3,6 +3,7 @@ import requests
 from tt_pose_heatmap import analyze_video
 import pprint
 from constants import Constants
+from tqdm import tqdm
 
 
 class PlayerHeatmapConsumer(Consumer):
@@ -38,20 +39,63 @@ class PlayerHeatmapConsumer(Consumer):
         ]
         self.joinserver()
 
-    def saveresult(self, videoId, resultMap):
+    def saveresult(self, videoId, resultMap, startframeid, endframeid):
         self.newprint("Executing saveresult....")
-        response = requests.post(
-            f"{self.server}/update-player-coordinates",
-            json={"videoId": videoId, "both_player_coords_map": resultMap},
+
+        # Calculate total frames to update
+        total_frames = len(resultMap)
+        frames_updated = 0
+        
+        # Create progress bar with custom format
+        progress_bar = tqdm(
+            total=total_frames,
+            desc="Saving player coordinates",
+            unit="frame",
+            bar_format="{desc}: {percentage:3.0f}%|{bar}| ({n_fmt}/{total_fmt}) [{elapsed}<{remaining}, {rate_fmt}]"
         )
-        if response.status_code == 200:
-            self.newprint("Player coordinates updated successfully.", skipconsole=True, event="updateplayercoords", level="info")
-        else:
-            self.newprint(f"Failed to update player coordinates: {response.json()}", event="updateplayercoords", level="error")
-        return response.json()
+
+        for frameid, coords in resultMap.items():
+            frame_success = True
+            for column, value in coords.items():
+                if column == "combinedheatmappath":
+                    # remove trailing \n 
+                    value = value.replace("\n", "")
+                    # value is path of an image, make it a database friendly pathstring
+                else:
+                    value = float(value)
+                    
+                response = requests.post(
+                    f"{self.server}/updatecolumn",
+                    json={
+                        "frameid": int(frameid),
+                        "column": column,
+                        "value": (
+                            value
+                        ),  # Convert numpy float32 to Python float
+                        "videoid": videoId,
+                    },
+                )
+                if response.status_code != 200:
+                    frame_success = False
+                    self.newprint(
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}",
+                        event="updateplayercoords",
+                        level="error",
+                    )
+            
+            # Update progress bar after processing all columns for this frame
+            if frame_success:
+                frames_updated += 1
+            progress_bar.update(1)
+            progress_bar.set_postfix({"Updated": f"{frames_updated}/{total_frames}"})
+
+        progress_bar.close()
+        self.newprint(f"Successfully updated {frames_updated}/{total_frames} frames", event="saveresult_complete", level="info")
+        
+        return {"status": "success", "frames_updated": frames_updated, "total_frames": total_frames}
 
     def logicfunction(self, messagebody):
-        self.newprint(f"Processing message: {messagebody}")
+        self.newprint(f"Processing message: {messagebody}", skipconsole=True)
         videopath = (
             requests.get(
                 f"{self.server}/get-video-path-against-id",
@@ -60,7 +104,7 @@ class PlayerHeatmapConsumer(Consumer):
             .json()
             .get("videoPath", Constants.DEFAULT_VIDEO_PATH)
         )
-        self.newprint(f"Video path retrieved: {videopath}")
+        self.newprint(f"Video path retrieved: {videopath}", skipconsole=True)
         framedatamap, heatmapimagepath = analyze_video(
             video=videopath if videopath else Constants.HEATMAP_DEFAULT_VIDEO,
             start_frame=messagebody.get("startframeid", 0),
@@ -77,8 +121,7 @@ class PlayerHeatmapConsumer(Consumer):
         )
 
         # Save results to the database
-        self.saveresult(messagebody["videoid"], framedatamap)
-        pprint.pprint(framedatamap)
+        self.saveresult(messagebody["videoid"], framedatamap, startframeid=messagebody.get("startframeid", 0), endframeid=messagebody.get("endframeid", 1000))
         self.newprint(f"Heatmap image saved at: {heatmapimagepath}")
 
         return True

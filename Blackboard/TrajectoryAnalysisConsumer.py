@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 from KalmanTRackerClass import KalmanTracker
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 class TrajectoryAnalysisConsumer(Consumer):
     def __init__(
@@ -652,17 +653,34 @@ class TrajectoryAnalysisConsumer(Consumer):
         # TODO: Combine all functions below into one function to reduce repetitive code
         self.saveballpositionresult(interpolated_ball_positions, videoId)
         self.saveballvelocityresult(ball_velocities, videoId)
-        self.saveballbounce(bounceframes, videoId)
         bounceframesset = set(bounceframes)
+        # Collect all non-bounce frames first, then update in one batch
+        antibounce_frames = []
         for frameid in range(startframeid, endframeid + 1):
             if frameid not in bounceframesset:
-                self.newprint(f"Updating antibounce for frameid: ", frameid)
-                self.saveantiballbounce([frameid], videoId)
+                antibounce_frames.append(frameid)
+        # Update all non-bounce frames in one batch with a single progress bar
+        if antibounce_frames:
+            self.saveantiballbounce(antibounce_frames, videoId)
+        self.saveballbounce(bounceframes, videoId)
 
     def saveballvelocityresult(self, ball_velocities, videoId):
-        print("Executing saveballvelocityresult.... for ", videoId)
+        self.newprint("Executing saveballvelocityresult.... for ", videoId)
+
+        # Calculate total frames to update
+        total_frames = len(ball_velocities)
+        frames_updated = 0
+        
+        # Create progress bar with custom format
+        progress_bar = tqdm(
+            total=total_frames,
+            desc="Saving ball velocities",
+            unit="frame",
+            bar_format="{desc}: {percentage:3.0f}%|{bar}| ({n_fmt}/{total_fmt}) [{elapsed}<{remaining}, {rate_fmt}]"
+        )
 
         for frameid, vectors in ball_velocities.items():
+            frame_success = True
             for column, value in vectors.items():
                 response = requests.post(
                     f"{self.server}/updatecolumn",
@@ -673,15 +691,41 @@ class TrajectoryAnalysisConsumer(Consumer):
                         "videoid": videoId,
                     },
                 )
-                if response.status_code == 200:
-                    self.newprint(f"Updated frame {frameid}, column {column} successfully.", skipconsole=True, event="updatecolumn1", level="info")
-                else:
-                    self.newprint(f"Failed to update frame {frameid}, column {column}: {response.json()}", skipconsole=True, event="updatecolumn1", level="error")
+                if response.status_code != 200:
+                    frame_success = False
+                    self.newprint(
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}",
+                        skipconsole=True,
+                        event="updatecolumn1",
+                        level="error",
+                    )
+            
+            # Update progress bar after processing all columns for this frame
+            if frame_success:
+                frames_updated += 1
+            progress_bar.update(1)
+            progress_bar.set_postfix({"Updated": f"{frames_updated}/{total_frames}"})
+
+        progress_bar.close()
+        self.newprint(f"Successfully updated {frames_updated}/{total_frames} frames", event="saveresult_complete", level="info")
 
     def saveballpositionresult(self, interpolated_ball_positions, videoId):
         self.newprint("Executing saveballpositionresult.... for ", videoId)
 
+        # Calculate total frames to update
+        total_frames = len(interpolated_ball_positions)
+        frames_updated = 0
+        
+        # Create progress bar with custom format
+        progress_bar = tqdm(
+            total=total_frames,
+            desc="Saving ball positions",
+            unit="frame",
+            bar_format="{desc}: {percentage:3.0f}%|{bar}| ({n_fmt}/{total_fmt}) [{elapsed}<{remaining}, {rate_fmt}]"
+        )
+
         for frameid, coords in interpolated_ball_positions.items():
+            frame_success = True
             for column, value in coords.items():
                 response = requests.post(
                     f"{self.server}/updatecolumn",
@@ -692,15 +736,40 @@ class TrajectoryAnalysisConsumer(Consumer):
                         "videoid": videoId,
                     },
                 )
-                if response.status_code == 200:
-                    self.newprint(f"Updated frame {frameid}, column {column} successfully.", skipconsole=True, event="updatecolumn1", level="info")
-                else:
-                    self.newprint(f"Failed to update frame {frameid}, column {column}: {response.json()}", skipconsole=True, event="updatecolumn1", level="error")
+                if response.status_code != 200:
+                    frame_success = False
+                    self.newprint(
+                        f"Failed to update frame {frameid}, column {column}: {response.json()}",
+                        skipconsole=True,
+                        event="updatecolumn1",
+                        level="error",
+                    )
+            
+            # Update progress bar after processing all columns for this frame
+            if frame_success:
+                frames_updated += 1
+            progress_bar.update(1)
+            progress_bar.set_postfix({"Updated": f"{frames_updated}/{total_frames}"})
+
+        progress_bar.close()
+        self.newprint(f"Successfully updated {frames_updated}/{total_frames} frames", event="saveresult_complete", level="info")
 
     def saveballbounce(self, bounceframes, videoId):
         self.newprint(f"Executing saveballbounce.... for ", videoId)
+
+        # Calculate total frames to update
+        total_frames = len(bounceframes)
+        frames_updated = 0
+        
+        # Create progress bar with custom format
+        progress_bar = tqdm(
+            total=total_frames,
+            desc="Saving ball bounces",
+            unit="frame",
+            bar_format="{desc}: {percentage:3.0f}%|{bar}| ({n_fmt}/{total_fmt}) [{elapsed}<{remaining}, {rate_fmt}]"
+        )
+
         for frameid in bounceframes:
-            self.newprint(f"Updating bounce for frameid: ", frameid)
             response = requests.post(
                 f"{self.server}/updatecolumn",
                 json={
@@ -712,14 +781,38 @@ class TrajectoryAnalysisConsumer(Consumer):
             )
             if response.status_code == 200:
                 self.newprint(f"Updated frame {frameid}, column ballbounce successfully.", skipconsole=True, event="updatecolumn1", level="info")
+                frames_updated += 1
             else:
-                self.newprint(f"Failed to update frame {frameid}, column ballbounce: {response.json()}", skipconsole=True, event="updatecolumn1", level="error")
-        self.newprint("Finished updating ballbounce for all frames.", event="finishbounceupdate")
+                self.newprint(
+                    f"Failed to update frame {frameid}, column ballbounce: {response.json()}",
+                    skipconsole=True,
+                    event="updatecolumn1",
+                    level="error",
+                )
+            
+            # Update progress bar
+            progress_bar.update(1)
+            progress_bar.set_postfix({"Updated": f"{frames_updated}/{total_frames}"})
+
+        progress_bar.close()
+        self.newprint(f"Successfully updated {frames_updated}/{total_frames} frames", event="finishbounceupdate", level="info")
     
     def saveantiballbounce(self, bounceframes, videoId):
-        self.newprint(f"Executing saveballbounce.... for ", videoId)
+        self.newprint(f"Executing saveantiballbounce.... for ", videoId)
+
+        # Calculate total frames to update
+        total_frames = len(bounceframes)
+        frames_updated = 0
+        
+        # Create progress bar with custom format
+        progress_bar = tqdm(
+            total=total_frames,
+            desc="Saving anti-ball bounces",
+            unit="frame",
+            bar_format="{desc}: {percentage:3.0f}%|{bar}| ({n_fmt}/{total_fmt}) [{elapsed}<{remaining}, {rate_fmt}]"
+        )
+
         for frameid in bounceframes:
-            self.newprint(f"Updating bounce for frameid: ", frameid)
             response = requests.post(
                 f"{self.server}/updatecolumn",
                 json={
@@ -731,9 +824,21 @@ class TrajectoryAnalysisConsumer(Consumer):
             )
             if response.status_code == 200:
                 self.newprint(f"Updated frame {frameid}, column ballbounce successfully.", skipconsole=True, event="updatecolumn1", level="info")
+                frames_updated += 1
             else:
-                self.newprint(f"Failed to update frame {frameid}, column ballbounce: {response.json()}", skipconsole=True, event="updatecolumn1", level="error")
-        self.newprint("Finished updating ballbounce for all frames.", event="finishbounceupdate")
+                self.newprint(
+                    f"Failed to update frame {frameid}, column ballbounce: {response.json()}",
+                    skipconsole=True,
+                    event="updatecolumn1",
+                    level="error",
+                )
+            
+            # Update progress bar
+            progress_bar.update(1)
+            progress_bar.set_postfix({"Updated": f"{frames_updated}/{total_frames}"})
+
+        progress_bar.close()
+        self.newprint(f"Successfully updated {frames_updated}/{total_frames} frames", event="finishbounceupdate", level="info")
 
 if __name__ == "__main__":
     c1 = TrajectoryAnalysisConsumer(
