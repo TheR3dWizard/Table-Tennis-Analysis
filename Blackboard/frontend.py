@@ -81,8 +81,66 @@ async def main():
                 prompt_text,
                 videoid
             )
-            print("Answer:")
-            pprint(answer)
+            print("\n" + "="*80)
+            print("ANSWER")
+            print("="*80)
+            
+            # Extract LLM response
+            llm_response = None
+            if 'analysis' in answer and 'llmans' in answer['analysis']:
+                llmans = answer['analysis']['llmans']
+                if llmans and len(llmans) > 0:
+                    llm_data = llmans[0]
+                    # Try to extract response - handle both dict and string representations
+                    if isinstance(llm_data, dict):
+                        llm_response = llm_data.get('response', None)
+                    else:
+                        # Extract from string representation
+                        llm_str = str(llm_data)
+                        # Find the response="..." part (handle escaped quotes)
+                        if 'response="' in llm_str:
+                            start_idx = llm_str.find('response="') + len('response="')
+                            # Find the closing quote, handling escaped quotes
+                            end_idx = start_idx
+                            while end_idx < len(llm_str):
+                                if llm_str[end_idx] == '"' and (end_idx == start_idx or llm_str[end_idx-1] != '\\'):
+                                    break
+                                end_idx += 1
+                            if end_idx > start_idx:
+                                llm_response = llm_str[start_idx:end_idx]
+                                # Unescape common escape sequences
+                                llm_response = llm_response.replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
+            
+            # Extract ball bounces
+            ball_bounces = answer.get('ball_bounces', [])
+            
+            # Print LLM response
+            if llm_response:
+                print("\n📝 LLM Analysis:")
+                print("-" * 80)
+                print(llm_response)
+            else:
+                print("\n⚠️  No LLM response found")
+            
+            # Print bounces
+            if ball_bounces:
+                print("\n🏓 Ball Bounces:")
+                print("-" * 80)
+                print(f"Total bounces: {len(ball_bounces)}")
+                print(f"Bounce frames: {ball_bounces}")
+                
+                # If detailed bounce info is available, show it
+                if 'analysis' in answer and 'bounces' in answer['analysis']:
+                    bounces_detail = answer['analysis']['bounces']
+                    print("\nDetailed bounce information:")
+                    for bounce_id, bounce_info in bounces_detail.items():
+                        frame = bounce_info.get('bounceFrame', 'N/A')
+                        segment = bounce_info.get('segment', 'N/A')
+                        print(f"  Bounce {bounce_id}: Frame {frame} - Segment: {segment}")
+            else:
+                print("\n⚠️  No ball bounces found")
+            
+            print("="*80 + "\n")
 
             start_time = None
 
