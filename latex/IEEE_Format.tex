@@ -197,17 +197,23 @@ Recent works in sports video analysis highlight how deep learning can be tailore
     \caption{Overall System Architecture Diagram}
     \label{fig:placeholder}
 \end{figure}
-We propose to incorporate the Blackboard Architecture (BA) into multi-agent systems (MASs) so that (1) agents with various roles can share all the information and other's messages during the whole problem-solving process, (2) agents that will take actions are selected based on the current content of the blackboard. 
+We aim to integrate the Blackboard Architecture (BA) into multi-agent systems (MASs) so that 
+(1) agents with specific and unique skills / capabilities can share information during the problem-solving process
+(2) decisions and actions taken by agents are based on the content of the blackboard at that time.
 
-This architecture enables a complex task solving strategy allowing different knowledge sources to communicate by the means of a common information field instead of a set sequence of actions. 
-We develop the first implementation of this proposal and conduct experiments on \hl{<>}. The results show that our system can be \hl{<>}
+By allowing differents knowledge sources (agents) to communicate by the means of a common information field (blackboard), we create systems
+capable of complex problem solving compared to traditional monolithic and sequencial systems.
+
+We develop the first implementation of this proposal and conduct experiments on footages of Table Tennis gameplay. 
 The overall system architecture / workflow is illustrated in Figure 1.
-\subsection{Overview and Motivation}
-As far back as in the 80’s of the last century, the BA was proposed \hl{(Nii, 1986; Hayes-Roth, 1985)} as a decentralized problem solving approach that imitates a group of human experts working together around a shared blackboard and each contributing her/his own solutions to the blackboard until a collective decision is reached. 
-Blackboard Architecture helps a Multi-Agent System (MAS) to utilize collective intelligence to further enhance problem solving performances. 
-Such a timely, iterated process enables a dynamic adaptation of collaboration mechanism among agents.
 
-We intend to incorporate the BA into the Table Tennis MAS and propose the blackboard-based LLM multi-agent system (bMAS) in this paper.
+\subsection{Overview and Motivation}
+The Blackboard Architecture was first proposed \cite{HAYESROTH1985251} \cite{PENNYNII199443} during early 1980s as a decentralized problem solving approach
+that mimics human expertise collaborating around an actual blackboard, each contributing their own solution until the program is solved.
+
+Employing a blackboard architecture in a Multi-Agent System (MAS) helps to take advantage of collective intelligence and 
+thereby further enhancing problem-solving performance of the system.
+
 \subsection{Core Components}
 The BA itself relies on four core components: (1) Blackboard (2) Knowledge Source (3) Communication Interface (4) Control Unit (CU). Information from the Knowledge Sources are stored on the Blackboard and are being subsequently reused by other Knowledge Sources to iteratively approach a solution. 
 \subsubsection{Blackboard}
@@ -217,7 +223,7 @@ Communication and coordination are achieved indirectly by reading and writing to
 
 We have implemented the blackboard as different tables in a Relational Database (Postgres) for production grade data storage for relational data with faster retrievals and consistent read write operations.
 
-The central database schema (see Tables I–VI) functions as the blackboard in our blackboard architecture implementation. 
+The central database schema (see Tables I-VI) functions as the blackboard in our blackboard architecture implementation. 
 All agents post their intermediate states, detected events, and final results solely into this schema, which defines the evolving solution space. 
 This “single source of truth” approach ensures consistency, repeatability, and modularity: modules communicate solely through the blackboard and remain decoupled, except via well-defined database reads/writes. 
 
@@ -359,7 +365,7 @@ We believe that this approach will contribute to the versatility, diversity and 
 \end{figure}
 \subsubsection{Communication Interface}
 The Communication Interface handles the communication between the knowledge sources and is based on the Publish Subscribe Model. This very model is the backbone behind BA, allowing agents share findings and results. 
-We have implemented a Pub-Sub Model using RabbitMQ, an open-source message broker that enables reliable, asynchronous communication between distributed applications by queuing, routing, and delivering messages. Every knowledge source listens for tasks (messages) in a predefined queue and defines a \textit{callback-function}. 
+We have implemented a Pub-Sub Model using RabbitMQ, an open-source message broker capable of reliable and asynchronous communication between distributed applications by queuing, routing, and delivering messages. Every knowledge source listens for tasks (messages) in a predefined queue and defines a \textit{callback-function}. 
 
 CU places message on the appropriate queue, on behalf of agents, based on the skill required. Agents are triggered using the callback function when their queue gets a message. These agents perform requested operations on the blackboard and send a success message upon completion. 
 
@@ -539,8 +545,6 @@ The Multi-Agent System proposed here operates on static, preconfigured blackboar
 Recent studies on LLM Based Multi-Agent System (LbMAS) \cite{hanllm} develop autonomous MASs by taking advantage of using a Large Language Model as the control unit. 
 These LLMs can be used to dynamically configure new agents and their skills in runtime, make it much more general and requiring low to none manual setup.
 While, in theory, a static agent configuration is quicker and deterministic, the generality of a dynamic MAS outweighs those disadvantages.  
-
-Further to leverage the use of distributed 
 
 In an age of rapid Cloud and Distributed Computing evolution, our proposal could also be made to take leverage of remote knowledge sources / agents and remote computing resources over a distributed network. 
 Recent studies \cite{agentworkfloworchetration} \cite{distributedblackboard} show promising implementations of MASs with many agents running on different networks/systems.
