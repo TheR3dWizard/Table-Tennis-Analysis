@@ -14,80 +14,94 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
-\title{Table Tennis Analysis}
+\title{Blackboard based Reasoning Framework for Explainable Table Tennis Analysis}
 
-\author{\IEEEauthorblockN{1\textsuperscript{st} Pramodini Padhmanabhan}
-\IEEEauthorblockA{\textit{Computer Science and Engineering} \\
+
+
+
+\author{
+\makebox[0.32\textwidth][c]{
+\begin{tabular}{c}
+1\textsuperscript{st} Pramodini Padhmanabhan\\
+\textit{Computer Science and Engineering}\\
 \textit{PSG College of Technology}\\
-Coimbatore, India \\
-pramodheepa@gmail.com}
-\and
-\IEEEauthorblockN{2\textsuperscript{nd} Akash Shanmugaraj}
-\IEEEauthorblockA{\textit{Computer Science and Engineering} \\
+Coimbatore, India\\
+pramodheepa@gmail.com
+\end{tabular}}
+\hfill
+\makebox[0.32\textwidth][c]{
+\begin{tabular}{c}
+2\textsuperscript{nd} Akash Shanmugaraj\\
+\textit{Computer Science and Engineering}\\
 \textit{PSG College of Technology}\\
-Coimbatore, India \\
-akashshanmugaraj@gmail.com}
-\and
-\IEEEauthorblockN{3\textsuperscript{rd} Sanjitha Rajakumar}
-\IEEEauthorblockA{\textit{Computer Science and Engineering} \\
+Coimbatore, India\\
+akashshanmugaraj@gmail.com
+\end{tabular}}
+\hfill
+\makebox[0.32\textwidth][c]{
+\begin{tabular}{c}
+3\textsuperscript{rd} Sanjitha Rajakumar\\
+\textit{Computer Science and Engineering}\\
 \textit{PSG College of Technology}\\
-Coimbatore, India \\
-sanjitha20041234@gmail.com}
-\and
-\IEEEauthorblockN{4\textsuperscript{th} Sreeraghavan Ramamoorthy}
-\IEEEauthorblockA{\textit{Computer Science and Engineering} \\
+Coimbatore, India\\
+sanjitha20041234@gmail.com
+\end{tabular}}\\[2ex]
+\makebox[0.32\textwidth][c]{
+\begin{tabular}{c}
+4\textsuperscript{th} Sreeraghavan Ramamoorthy\\
+\textit{Computer Science and Engineering}\\
 \textit{PSG College of Technology}\\
-Coimbatore, India \\
-sreeraghavan2016@gmail.com}
-\and
-\IEEEauthorblockN{5\textsuperscript{th} Dwarakesh Prasad}
-\IEEEauthorblockA{\textit{Computer Science and Engineering} \\
+Coimbatore, India\\
+sreeraghavan2016@gmail.com
+\end{tabular}}
+\hfill
+\makebox[0.32\textwidth][c]{
+\begin{tabular}{c}
+5\textsuperscript{th} Dwarkesh\\
+\textit{Computer Science and Engineering}\\
 \textit{PSG College of Technology}\\
-Coimbatore, India \\
-gurudwarkesh@gmail.com}
+Coimbatore, India\\
+gurudwarkesh@gmail.com
+\end{tabular}}
+\hfill
+\makebox[0.32\textwidth][c]{
+\begin{tabular}{c}
+6\textsuperscript{th} Mrs. K. Archana\\
+\textit{Computer Science and Engineering}\\
+\textit{PSG College of Technology}\\
+Coimbatore, India\\
+archanak2896@gmail.com
+\end{tabular}}
 }
 
 
 \maketitle
 
 \begin{abstract}
-Current reasoning models heavily rely on LLMs and LLM agents taking various roles. Although this has its advantages, it requires a large number of tokens and computation. There are also other non-LLM based intelligence capabilities such as various ML models that are specialized. Using multiple specialized models in tandem is a better way to model reasoning.
+Reasoning models presently rely a lot on LLMs and LLM agents taking various roles.This has its advantages, but it requires a large number of tokens and computation. There are also other non-LLM based ways that provide intelligence such as various ML models that are specialized. 
 
-This architecture facilitates flexible integration of diverse analysis components and minimizes redundant computation. A shared context layer aggregates module outputs for centralized LLM based querying and downstream applications such as visualization, summarization, and performance reporting.
+Working with multiple specialized models together is a better way to obtain reasoning. This architecture facilitates flexible integration of diverse analysis components and minimizes redundant computation. A shared context layer aggregates module outputs for centralized LLM based querying and downstream applications such as visualization, summarization, and performance reporting. 
 
 We demonstrate the applicability of the system in the domain of sports video analysis, using table tennis match footage as a case study. The proposed design generalizes well to other domains that require fine-grained and interpretable video understanding.
+
+
 \end{abstract}
 
-% \begin{IEEEkeywords}
-% component, formatting, style, styling, insert
-% \end{IEEEkeywords}
+\begin{IEEEkeywords}
+Blackboard architecture, multi-agent systems, explainable artificial intelligence, sports video analysis, trajectory estimation, depth estimation, autonomous learning
+\end{IEEEkeywords}
 
 \section{Introduction}
-Among the current mainstream approaches to reasoning, two main paradigms are tightly coupled specialized systems and generalized LLM-based systems. While tightly coupled systems perform very well in their domain, they do not expand well to other domains, and they are difficult and costly to adapt to new domains, often requiring significant re-engineering.. However, although LLMs demonstrate remarkable capabilities in diverse tasks, their reasoning is based on pattern completion rather than grounded, interpretable understanding—making them vulnerable to hallucinations or brittle reasoning.
-
-We propose a new type of reasoning system that is decentralized in execution, scalable, and easy to modify, providing both interpretability and competitive results. By using a Publish-Subscribe model, we both reduce the amount of computation done while also implementing reasoning capabilities by having model outputs chain into messages sent to other models, mimicking AI Agent behavior in a more transparent manner.
-
-The Mixture-of-Experts architecture is the currently used alternative. While Mixture-of-Experts architectures improve efficiency by activating only a subset of experts per input, they rely on a centralized routing mechanism and offer limited transparency into how different components contribute to the final output.
-
-Future reasoning systems must move beyond monolithic models toward collaborative ensembles of specialized components that produce diverse inferences. These can be integrated to support richer and more context-aware insights.
-
-This project aims to find out whether combining specialized ML models in a modular, collaborative architecture can lead to more effective and reliable intelligence than relying on an LLM alone.
-
-
-
+Video understanding needs extraction of various, diverse, and different insights like player positions, ball trajectory, player heat map, space point estimator etc. Current approaches try to perform the analysis in a single brute force approach using a large language model taking up a substantial amount of computing power and time, while also sacrificing on the specific task evaluation models accuracy and performance.
+Recent advancements in machine learning have demonstrated that specialized models have greater performance and accuracy than general machine learning models. However, integrating multiple specialized models into a single reasoning system is challenging yet rewarding with its accuracy and performance. Current systems either use general LLMs that leave out the performance and attention to detail that can be achieved by specialized systems, or use application specific rigidly integrated pipelines that don’t work in generalized domains. This highlights the gap between efficient specialized model systems and the flexible, interpretable reasoning system.
+With this we present a modular intelligence architecture that couples specialized ML models with reasoning models. This system uses blackboard architecture in the backend to accumulate all data to a central point, from which the independent model data can be retrieved. We use a publish subscribe architecture to ensure only required models are run for any sequence. This reduces the amount of computation while maintaining explainability while allowing for flexible, multi model analysis.
+We check this architecture with the application of table tennis video analysis. The system uses specialized models for player detection, player heat map, ball tracking and ball trajectory estimation. These are integrated with the publish subscribe network and blackboard to generate insights
 \section{Problem Statement}
 
-This project will build a scalable Table Tennis Video Analysis module—using deep‑learning models (e.g., CNNs and temporal transformers) and efficient spatio‑temporal feature extractors to automatically spot serve faults (net hits, illegal tosses), tally rally exchanges, pinpoint bounce locations, and produce player movement insights.
+This project will build a scalable Table Tennis Video Analysis system using deep‑learning models and efficient spatio‑temporal feature extractors to tally rally exchanges, pinpoint bounce locations, and produce player movement insights.
 
-It uses the following core components - object detection, event segmentation, pose estimation, and sequence analysis. These components work together in a modular and agentic architecture, where each component functions as a semi-autonomous "agent" focused on a specialized task. Outputs from individual agents can be integrated to form higher-level insights such as:
+It uses the following core components - object detection, event segmentation, pose estimation, and sequence analysis. These components work together in a modular and agentic architecture, where each component functions as a semi-autonomous "agent" focused on a specialized task. Outputs from individual agents can be integrated to form higher-level insights such as:Provide point-by-point suggestions based on detected inefficiencies 
 
-\begin{itemize}
-    \item \textbf{Player Behavioral Profiles}: Tracking trends such as preferred serve styles, stroke success rates, and movement patterns.
-
-    \item \textbf{On-the-Fly Coaching and Feedback}: Provide point-by-point suggestions based on detected inefficiencies (e.g., slow recovery time, poor footwork on the backhand side).
-
-    \item \textbf{Match Strategy Insights}: Recommending tactical shifts against specific opponents based on historical patterns and real-time adjustments.
-\end{itemize}
 The agentic architecture also allows for fast extensibility without requiring re-engineering of any core systems
 
 
@@ -95,79 +109,48 @@ The agentic architecture also allows for fast extensibility without requiring re
 
 \subsection{Trajectory Analysis}
 
-The research in trajectory analysis brings together a mix of classic computer vision methods and cutting-edge deep learning models. Current work explores combining videos with data from sensors like accelerometers  to create richer, more reliable information. Some ongoing challenges include dealing with missed detections when objects are hidden, reducing the effects of blurry motion, and keeping tracking smooth over time. New directions in Trajectory Analysis involve self-learning systems that don't rely on labels and neural networks inspired by physics to better predict how objects move \cite{pongball}.
+Trajectory analysis depends on multiple data and image processing along with some deep learning models. Some efforts include metadata about the video and objects such as accelerometers to create more reliable information.\cite{pongball}.
 
 \subsubsection{Workflow}
 
-Trajectory analysis in sports follows a systematic multi-stage workflow beginning with data acquisition through high-speed cameras operating at 60-120 fps in synchronized multi-camera setups \cite{electronics14010027}. The process proceeds through intrinsic and extrinsic camera calibration using chessboard patterns and fixed reference points to establish accurate 3D coordinate systems for spatial reconstruction.
+Trajectory analysis in sports follows a systematic multi-stage workflow beginning with data acquisition through high-speed cameras operating at 60-120 fps in synchronized multi-camera setups \cite{electronics14010027}. 
 
-Object detection and tracking represent the core computational phase, employing models like YOLOv4, YOLOv11, and TrackNetv2 for ball detection \cite{electronics14010027}, while ByteTrack with Kalman filtering maintains temporal consistency across frames. Subsequently, 3D trajectory reconstruction utilizes triangulation for multi-camera systems or LSTM-based pipelines for monocular video \cite{pongball}, culminating in event spotting and analysis applications.
-
-\subsubsection{Models Used}
-
-Primary detection models include YOLOv4 and YOLOv11 for efficient small object detection, while TrackNetv2 generates heatmaps for ball localization \cite{electronics14010027}. Advanced reconstruction employs LSTM-based architectures featuring specialized networks: LSTM$\varepsilon$ for End-of-Trajectory prediction, LSTM\textsubscript{height} for vertical position estimation, and LSTM\textsubscript{refine} for trajectory smoothing.
-
-\subsection{Stroke Analysis}
-
-The ball is tracked in 2D---typically with YOLOv4 \cite{strokeandball}---then strokes are segmented using simple trajectory cues like local extrema and bounces. Finally, standardized trajectories feed classifiers, where Temporal Convolutional Networks excel \cite{strokeandball}, while 3D LSTM pipelines and player heatmaps add richer context beyond stroke labels.
-
-\subsubsection{Workflow}
-
-The workflow begins with high-quality video capture from an umpire's side view using high frame rate (around 120 fps) and 1080p resolution. Videos are processed to extract 2D ball coordinates per frame, segment continuous trajectories into strokes via mathematical rules on local extrema, and classify each stroke's type using standardized, padded, mirrored trajectory sequences \cite{strokanadball}.
-
-Ball tracking relies primarily on a YOLOv4 detector, selected for superior F1 and fast 60 fps inference; it was pre-trained on 68,467 badminton shuttlecock images and fine-tuned on 968 table tennis ball images, leveraging the Darknet53 backbone \cite{strokaandball}. TrackNetv2, which produces heatmaps from multi-frame inputs to exploit temporal cues and handle occlusion, was also evaluated but was less preferred for this pipeline. Stroke detection uses x- and y-trajectory extrema to find temporal boundaries and ball pitches, labeling valid strokes, services, and misses.
+This is followed by object detection which employs models such as those in the YOLO family or TrackNetV2 \cite{electronics14010027}or ByteTrack with Kalman filtering to maintain temporal consistency. Subsequently, the ball detection and camera calibration is used to create 3D trajectories
+\cite{pongball}.
 
 \subsubsection{Models Used}
 
-For recognition, deep models that preserve temporal structure performed strongest, with a Temporal Convolutional Network achieving about 87.155\% accuracy \cite{strokeandball} on pre-padded inputs and offering low variance, bias, and inference time. BiLSTM and LSTM architectures were also benchmarked.
+Primarily, they have used YOLOv4 and v11 for detecting the ball. Multiple cameras were also required \cite{electronics14010027}. Advanced reconstruction employs LSTM-based architectures featuring specialized networks: LSTM$\varepsilon$ for End-of-Trajectory prediction, LSTM\textsubscript{height} for vertical position estimation, and LSTM\textsubscript{refine} for trajectory smoothing.
 
-For the classic machine learning side, each trajectory is flattened into a single feature vector. In that setup, an SVM with an RBF kernel (C=10) did best with post-padding, while KNN (k=9) was a solid pick with pre-padding. Random Forest and XGBoost were also tried \cite{strokeandball}. 3D trajectory estimates were added using an LSTM-based pipeline with three parts: predicting the end of a trajectory, estimating height, and then refining the result.
-
-\subsection{Foul Analysis}
-
-This work demonstrates a trajectory-centric pipeline for automated foul analysis in table tennis serves \cite{art} that couples strong detection and tracking with attention-based temporal modeling and transparent rule checks. By relying solely on 3D ball kinematics, it achieves accuracy with reduced computational cost, lowering barriers to deployment while improving referee assistance with objective, interpretable outputs grounded in physical motion cues.
-
-\subsubsection{Workflow}
-
-The system begins with synchronized, multi-view capture in a controlled indoor setup \cite{art} to ensure consistent lighting and reliable tracking. YOLO11 detects the fast-moving ball in each frame \cite{art}.
-
-Triangulation fuses detections into a precise 3D trajectory with temporal indexing, which becomes the single modality driving downstream analysis. Using only trajectory and key points, the video is segmented into serve sequences and evaluated by rule-based checks on toss height, verticality, and spatial boundaries to classify frames as No Foul or Foul \cite{electronics14010027}.
-
-\subsubsection{Models Used}
-
-YOLO11 serves as the high-precision detector tailored for tiny, fast objects, reaching 87.52\% precision and 83.37\% recall\cite{electronics14010027} . The model's attention mechanism captures temporal structure in ballistic and post-impact motion, enabling accurate event localization without RGB or optical flow\cite{electronics14010027}. This design underpins a trajectory-only pipeline that reduces compute versus pose or multi-stream systems \cite{electronics14010027}.
 
 \subsection{Player Heatmap}
 
-On the player side, people were detected with Detectron2, tables found using Hough and color cues, hip positions projected into a top-down view , and movement patterns studied with heatmaps and Kolmogorov--Smirnov tests.\cite{haas2023heatmap}
+Hass et al.,[], created a comprehensive player heatmap pipeline by combining deep learning models and some computer vision algorithms.\cite{haas2023heatmap}
 
 \subsubsection{Workflow}
 
-The heatmap pipeline begins with match videos of top-100 professional male players \cite{haas2023heatmap}. Active rally segments are isolated by removing replays and breaks, detecting the table via Hough transform line geometry, and filtering frames accordingly. People are detected with Detectron2; heuristics and tracking retain only the two players.
-
-Player image-plane hip positions are projected onto the table's 3D plane to obtain a consistent top-view coordinate system centered at the table's midpoint, with continuous table tracking to handle camera motion . Aggregation and weighted normalization yield expression-specific heatmaps across attributes.\cite{haas2023heatmap}
+At first, the table was identified by using Hough transforms and some normal image processing techniques and algorithms. Next the players themselves were identified using Facebook’s Detectron2. The video was segmented into rallies, however it is not clear if that was automated or manual. The heatmap itself was generated by segmenting the play area into a grid and plotting the player locations onto the grid for each frame.\cite{haas2023heatmap}
 
 \subsubsection{Models Used}
 
-Table detection uses the classical Hough transform to extract straight lines \cite{haas2023heatmap}. Detectron2 performs state-of-the-art people detection; simple heuristics plus tracking isolate the two athletes. Hip keypoints are mapped from 2D images to the detected table plane, assuming hip height near table level, creating a stable top-view player position stream.
-
-Each player's positions form an occurrence grid normalized into a probability heatmap. Analytically, heatmaps are treated as 2D probability functions and compared via a multidimensional Kolmogorov--Smirnov variant \cite{haas2023heatmap}.
+Detectron2 for player detection. Hough Transforms for table detection \cite{haas2023heatmap}.
 
 \subsection{LLM Reasoning Architectures}
-The blackboard model of problem solving  has historically inspired architectures that separate memory, control, and expertise\cite{hanllm}. In modern contexts, this abstraction aligns closely with large language model (LLM)-driven multi-agent systems, which integrate blackboard structures with mixture-of-experts (MoE) mechanisms\cite{hanllm}
+Earlier AI systems that separated memory, control, and knowledge were based on the Blackboard Model \cite{hanllm}. With the growth of Agentic AI and Large Language Models (LLMs), researchers are reusing this idea to build multi-agent systems. These systems use a mixture-of-experts (MoE) design, where different specialized agents or models work together to solve complex problems efficiently \cite{hanllm}
 
 \subsubsection{Workflow}
-A typical workflow begins with a control unit (CU)—itself often an LLM—that decides which specialized agents should act based on the current problem state. These agents contribute their reasoning outputs to a shared blackboard memory, ensuring all subsequent agents operate with the same holistic context. Iterations proceed until convergence, either through consensus or predefined termination conditions.\cite{hanllm}
+A typical workflow starts with a Control Unit (CU),usually an LLM that decides which agents should handle the current task. Each agent processes part of the problem and writes its results to a shared blackboard memory. This shared memory lets every agent access the same information and build on each other’s work. The process continues until the system reaches a solution, either by agreement among agents or when a stopping condition is met \cite{hanllm}.
 
 \subsubsection{Models Used}
-Classical work by Jacobs et al. \cite{amoe} on adaptive mixtures of experts introduced the principle of dividing tasks among specialized models and dynamically weighting their outputs. This idea later scaled into architectures like the sparsely-gated MoE layer \cite{omoe}, which improved efficiency in extremely large neural networks. Recent surveys \cite{smoe} highlight how MoE structures support LLM scalability, while Han \& Zhang [14] demonstrated how coupling them with blackboard coordination improves multi-agent reasoning efficiency.
+Jacobs et al. \cite{amoe} first introduced the idea of adaptive mixtures of experts, where different models handle different tasks and their outputs are combined dynamically. Later, the sparsely-gated MoE layer \cite{omoe} improved the efficiency of very large neural networks. Recent studies \cite{smoe} have shown that MoE architectures help LLMs scale better, and Han and Zhang [14] found that combining them with blackboard coordination further improves reasoning and collaboration among agents.
 
-Thus, modern blackboard-based LLM multi-agent systems (bMAS) \cite{hanllm} embody a synthesis: the symbolic transparency of early blackboard systems [10], the adaptability of mixtures of experts \cite{amoe}\cite{moe}, and the scalability insights captured in surveys of MoE research \cite{moe}\cite{smoe}.
+In short, modern blackboard-based LLM multi-agent systems (bMAS) \cite{hanllm} combine the clear reasoning of early blackboard systems [10], the flexibility of mixtures of experts \cite{amoe}\cite{moe}, and the scalability seen in recent MoE research \cite{moe}\cite{smoe}.
 
-\subsection{Blackboard Architecture}
+\subsection{Blackboard}
 The capabilities of a classical Blackboard Architecture allows researchers to take advantage of multi-agent systems in LLM-driven architectures\cite{nii1986blackboard}.
-Agents enjoy flexible and competent workflows by making use of the information sharing and adaptive scheduling features of the blackboard \cite{hanllm}.
-Implementations of LbMAS have shown to be scalable and efficient.
+Agents enjoy flexible and competent workflows by making use of the information sharing and adaptive scheduling features of the blackboard. \cite{hanllm}.
+Implementations of LbMAS have shown to be scalable and efficient. 
+
 
 \subsubsection{Workflow}
 The blackboard-based LLM multi-agent system (bMAS) undergoes one or more iterations during one problem solving session. 
@@ -186,9 +169,6 @@ Advanced agents are made capable of special roles like problem decomposition, ev
 The whole system, given enough iterations, converges into one single solution.
 \cite{hanllm}.
 
-\subsection{Action Spotting}
-
-Recent works in sports video analysis highlight how deep learning can be tailored to different game contexts. Giancola et al. (2024) addressed the challenge of action spotting in football videos by building models capable of automatically identifying temporal segments corresponding to key events, showing how large-scale video understanding can reduce reliance on manual annotations \cite{giancola}. Similarly, Voeikov et al. (2020) proposed TTNet for table tennis, a real-time framework that jointly captures temporal and spatial cues to recognize strokes and track the ball with high precision \cite{ttnet}. Together, these approaches emphasize that event localization and fine-grained spatiotemporal modeling are critical for table tennis analysis, where both rapid ball motion and subtle player actions must be detected reliably.
 
 \section{System Design Architecture}
 \begin{figure}
@@ -359,13 +339,13 @@ These knowledge sources have been programmatically implemented as objects of the
 We believe that this approach will contribute to the versatility, diversity and generality of agent introduction at scale.
 \begin{figure}
     \centering
-    \includegraphics[width=1\linewidth]{Class Diagram.png}
+    \includegraphics[width=1\linewidth]{ClassDiagram.png}
     \caption{Class Diagram}
     \label{fig:placeholder}
 \end{figure}
 \subsubsection{Communication Interface}
 The Communication Interface handles the communication between the knowledge sources and is based on the Publish Subscribe Model. This very model is the backbone behind BA, allowing agents share findings and results. 
-We have implemented a Pub-Sub Model using RabbitMQ, an open-source message broker capable of reliable and asynchronous communication between distributed applications by queuing, routing, and delivering messages. Every knowledge source listens for tasks (messages) in a predefined queue and defines a \textit{callback-function}. 
+We have implemented a Pub-Sub Model using RabbitMQ, an open-source message broker that enables reliable, asynchronous communication between distributed applications by queuing, routing, and delivering messages. Every knowledge source listens for tasks (messages) in a predefined queue and defines a \textit{callback-function}. 
 
 CU places message on the appropriate queue, on behalf of agents, based on the skill required. Agents are triggered using the callback function when their queue gets a message. These agents perform requested operations on the blackboard and send a success message upon completion. 
 
@@ -382,104 +362,155 @@ This mechanism enables seamless discovery and on-the-fly integration of new capa
 \subsection{Component Description}
 These are the knowledge sources that are incorporated into the overall system architecture
 \subsubsection{Table Vertex Detection}
-The results from this module is required by the trajectory analysis module and for answering certain questions by the answering machines. There were certain issues faced during training, however, the resulting module was able to predict the table corners with a low error
+The results from this module is required by the trajectory analysis module and for answering certain questions by the answering machines.
 
 \subsubsection{Ball Position Detection}
 The ball detection module serves as a foundational constituent in the proposed table tennis analysis system.It enables precise localization of the ball across frames to facilitate analytics such as trajectory analysis. Accurate ball detection is essential for ensuring the reliability of subsequent modules that depend on spatial and temporal ball movement data.
 \subsubsection{Player Heatmap Generation}
 The player heatmap is a useful tool for user analysis as it shows the behaviour and preferred styles of each player. It provides the positions of each player on every frame using a simple pretrained YOLO model 
 \subsubsection{Space Point Estimator}
-The space point estimator adds an extra layer of insight as it can convert points on a 2D video into 3D coordinates. This is done using the DepthAnythingV2 model. 
+The space point estimator adds an extra layer of insight as it can convert points on a 2D video into 3D coordinates. 
 \subsubsection{Trajectory Analysis}
 The trajectory analysis component delivers accurate ball tracking and motion analysis from high-frame-rate table tennis videos. It automatically extracts the ball’s spatial positions, velocities, and bounce points with high precision, supporting both tactical coaching and detailed player performance evaluation.
-The system reconstructs full ball trajectories by using systematic interpolation to fill in any missing detections. A Kalman filter then refines these trajectories by blending measured data with predictions for smooth and realistic motion. It computes both horizontal and vertical velocity components to analyze key dynamics like speed, acceleration, and approach angle. Finally, detected bounce points are adjusted to align accurately with the table’s standard coordinates, minimizing drift and ensuring consistent precision.
 
 \section{Implementation}
 
 \subsection{Table Vertex Detection}
-This is a crucial model for several other deeper analysis as it provides a sense of space to the 2D video which is useful for trajectory analysis, 3D analysis and certain types of questions. We used a YOLOv8 pose estimation model trained on custom manually and synthetically generated data from the dataset. The pose estimation did not work well with the amount of data present in the dataset.
-
-However, the bounding boxes worked well and were used in the final system. The YOLO model was wrapped in a function that would run the model over a set of frames, average the result and return it for every frame in the given range. This is the final design used in the blackboard system
-
-\subsection{Ball Position Detection}
-A large-scale dataset comprising approximately 88,599 annotated frames was used for model training in the initial stage. However, due to the high computational requirements and limited GPU resources in Google Colab, the complete dataset could not be processed efficiently. To address this, 6,721 frames containing the ball was extracted and used for training. This approach resulted in high loss values, primarily due to the lack of negative samples representing non-ball instances.
-
-To improve model generalization, a balanced dataset consisting of 6,721 labeled ball frames and 2,700 non-ball frames was curated. This combination enabled the model to reducing false detections and improve convergence. The YOLOv11n model was selected for its lightweight architecture, making it suitable for detecting fast and tiny objects.
-
-\subsection{Trajectory Analysis}
-\subsubsection{Framewise Detection Acquisition}
-Each frame of match video is processed using a state-of-the-art deep learning-based object detection model, such as YOLO (You Only Look Once), which is renowned for rapid, accurate localization of small objects like sports balls in diverse lighting and game scenarios. For every frame, the model returns the pixel coordinates (x, y) of the ball center, if detected. This step forms the raw backbone sequence of ball locations.
-
-\subsubsection{Missing Value Handling (Interpolation)}
-Sports videos often suffer from intermittent missed detections - even the best deep learning models can temporarily lose the ball. To maintain trajectory continuity and prevent analytical errors, the pipeline identifies gaps in detection. For gaps no larger than a configurable threshold (e.g., 5 frames), the system applies cubic spline interpolation, leveraging neighboring frames to estimate the ball's position in the missing frames.
-
+This is a crucial model for several other deeper analysis as it provides a sense of space to the 2D video which is useful for trajectory analysis, 3D analysis and certain types of questions.
+Following the work done by Haas et al., we first tried Hough Transforms and image processing to find the table coordinates. However this ran into many issues,
 \begin{itemize}
-    \item Find all consecutive frames with 'None' in position data.
-    \item For gaps bounded by valid points, estimate missing positions using a cubic spline curve fit (providing both continuity and smoothness).
+\item For many videos the edge detection had too many gaps and smoothing was not enough to fix the images well enough for hough transformation to work
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{5.1.png}
+    \caption{Issues due to gaps in edge detection due to player interference}
+    \label{fig:placeholder}
+\end{figure}
+\item Small disturbances could cause the table to be detected very wrongly
+\item The lines on the table could cause issues with the table detection
+\item The image processing was such that it could be made to work for some cases but only at the cost of others
 \end{itemize}
 
-\subsubsection{Trajectory Filtering (Kalman Filter + Smoothing)}
-The raw or interpolated ball positions still contain noise - due to imperfect detection, jitter, or environmental variation. To address this, a Kalman filter is employed. The filter models the ball's motion and dynamically blends the predicted movement (based on physics) and the observed (potentially noisy) measurements. After Kalman filtering, optional Savitzky-Golay smoothing further polishes the trajectory, suppressing minor jitter and enhancing physical realism.
+% \begin{figure}[h!]
+%     \centering
+%     \includegraphics[width=1\linewidth]{5.2.png}
+%     \caption{Issues due to lines on the table}
+%     \label{fig:placeholder}
+% \end{figure}
+
+These issues led to moving towards a more general deep learning pipeline using YOLO. We used a YOLOv8 pose estimation model trained on custom manually and synthetically generated data from the dataset. The pose estimation did not work well with the amount of data present in the dataset. However, the bounding boxes worked well and were used in the final system. The YOLO model was wrapped in a function
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{5.3.png}
+    \caption{Final YOLO Implementation of Table Detection}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsection{Ball Position Detection}
+The YOLOv11n model was chosen for this task because it is lightweight and good at spotting small and fast-moving objects; i,e. A table tennis ball. A large-scale dataset comprising approximately 88,599 annotated frames was used for model training in the initial stage.However, due to the high computational requirements and limited GPU resources in Google Colab, the complete dataset could not be processed efficiently. To address this, 6,721 frames containing the ball were extracted and used for training. This approach resulted in high loss values, primarily due to the lack of negative samples representing non-ball instances. To help the model learn better, a balanced dataset was made with 6,721 ball frames and 2,700 frames with no ball. This helped improve recall and made training faster. 
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{5.4.jpg}
+    \caption{Ball Position Detection}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsection{Trajectory Analysis}
+\subsubsection{Framewise Ball Position Detection}
+This data is collected from the blackboard and is computed by the Ball Position Detection Module. This step is the backbone sequence of ball locations.
+
+\subsubsection{Interpolation}
+Often, sports videos have moments where the ball is not detected, that even advanced models can lose track of it a few times. To maintain the path continuity and prevent analytical errors, the pipeline significantly identifies such missing spaces in detection. For gaps no larger than a particular threshold (e.g., 5 frames), the system applies
+cubic spline interpolation to fill in the missing details
+
 
 \begin{itemize}
-    \item Initial ball position/velocity is set from earliest available frames.
-    \item Filter parameters (process vs. measurement noise) are tuned based on video resolution, frame rate, and expected ball dynamics.
-    \item Smoothing window is adapted according to the length of the segment (e.g., 7 frames).
+    \item Identify all consecutive frames where the position data is missing 
+
+    \item For gaps that are surrounded by valid positions, fill in the missing points using a cubic spline curve, ensuring the trajectory remains smooth and continuous.
+
+\end{itemize}
+
+\subsubsection{Kalman Filter and Smoothing}
+The raw or interpolated ball positions still include some noise, that is caused by imperfect detections or changes in the environment. To address this, Kalman filter is applied. The filter tracks the movement of the ball  and combines the predicted movement (based on physics) with the actual which is sometimes noisy.
+
+
+\begin{itemize}
+    \item The initial ball position is determined from the earliest available frames.
+    \item The filter parameters, such as process and measurement noise, are adjusted according to the video’s resolution, frame rate, and the expected motion behavior of the ball.
 \end{itemize}
 
 \subsubsection{Bounce Points Detection}
-Bounce events are a crucial kinetic feature in table tennis analytics. The system scans the smoothed vertical trajectory (y-coordinates) for local minima near the table surface. To reliably identify physical bounces and avoid noise, the algorithm also checks for significant sign reversals in vertical velocity - a clear hallmark of a ball contacting the surface and reversing direction.
+Bounces are key features in table tennis analysis. The system looks at the smoothed y-coordinates to detect drops near the table surface that indicate possible bounce. To distinguish real bounces from noise, it also checks for a change in the sign of the vertical velocity,which is a strong indicator that the ball has hit the surface and reversed the  direction.
 
 \begin{itemize}
-    \item For each frame, compare its y-value to adjacent frames (i-1, i, i+1); a local minimum is possible bounce.
-    \item Check the velocity gradient: a sign change indicates motion reversal.
-    \item Only frames within a specified vertical proximity (e.g., within 15 pixels of table top/bottom edge) are considered genuine bounce candidates.
+    \item For each frame, compare its y-value with neighboring frames (i-1, i, i+1) to find local minima that may represent bounces.
+
+    \item Verify a change in sign confirms a reversal in motion.
+
+    \item Only consider frames within a set vertical range as valid bounce candidates.
+
 \end{itemize}
 
-\subsubsection{Bounce Correction (Table Alignment)}
-Detected bounce points may not coincide exactly with canonical table edge coordinates because of detection inaccuracies or video noise. To fix this, candidate bounces within threshold proximity are “snapped” to the exact y-value of the relevant table edge (top or bottom), ensuring consistency and validity for referee and coaching use. This Improves the accuracy of bounce localization.
+% \subsubsection{Bounce Correction}
+% The detected bounce points usually may not perfectly align with the actual table coordinates due to very small detection errors or video noise. In order to correct this, bounce points that are close to the table surface are adjusted to match the exact y-coordinate of the nearest table edge (top or bottom). 
+
 
 \subsubsection{Velocity Computation}
-For detailed motion analysis, velocities are essential. After smoothing, the pipeline computes framewise ball velocity by numerical differentiation (gradient) of the x and y position arrays. This yields both the horizontal (ballxvector) and vertical (ballyvector) velocity components, allowing for analysis of speed, energy, and tactical play patterns.
+The ball’s velocity information is crucial to analyze the ball’s motion, . This system computes the velocity after smoothing the path of the ball, through the numerical gradient of its x and y position values for each frame. This gives both horizontal and vertical components of the velocity, namely ($ball _x vector$) and ($ball _yvector$)
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{5.5.jpg}
+    \caption{Path generated by Trajectory Analysis}
+    \label{fig:placeholder}
+\end{figure}
 
-
-content
 \subsection{Space Point Estimator}
 
-The Space Point Estimator module is intended to transform 2D points captured from table tennis video frames into 3D world coordinates, facilitating more comprehensive and spatially precise analytics throughout the entire system. This transformation is accomplished through sophisticated depth estimation utilizing the cutting-edge Depth Anything V2 model.
+The main objective or intention of the Space Point Estimator module is to transform 2D points captured from table tennis video frames into 3D coordinates of the world. Doing this facilitates more detailed and precise analytics throughout the system. This transformation is done using advanced depth estimation with the Depth Anything V2 model.
+
 
 \subsubsection{Workflow and Process}
 
-When a frame (image) is prepared for depth estimation---such as a video frame with identified table or ball positions---the image path is submitted to the estimator. The procedure unfolds as follows:
+When preparing a frame (image) for depth estimation such as a video frame where table positions or ball positions are identified, the image path is submitted to the estimator. 
+
+The steps of the process are:
+
 
 \begin{itemize}
     \item \textbf{Image Input and Preprocessing:} 
-    The estimator acquires the path to a video frame image (for instance, an annotated image with identified ball or keypoints). The image is loaded, transformed into a standardized RGB format utilizing PIL, and its dimensions are documented.
+    The estimator takes the video frame path, loads the image, converts into a standard RGB format, and its dimensions are stored.
+
     
     \item \textbf{Depth Anything V2 Model Inference:}
-    The foundation of the system employs the Depth Anything V2 model---a transformer-based architecture that has been pre-trained for monocular depth estimation. The image is pre-processed into tensors suitable for the model. Depending on the hardware available, tensors are either transferred to the GPU or retained on the CPU for inference. The model generates a dense depth map, which illustrates per-pixel distance estimations within the scene.
+   The heart of the system is the Depth Anything V2 model.It is a transformer based architecture, pre-trained to figure out the depth from a camera angle. Before processing, the image is converted into tensors with which the model works.The model generates a dense depth map, which illustrates per-pixel distance estimations within the scene.
+
     
-    \item \textbf{Caching for Efficiency:}
-    To prevent redundant calculations on frequently processed images, the estimator stores depth maps using an MD5 hash of the image file. Subsequent requests for the same frame retrieve the result immediately from the cache.
+    % \item \textbf{Caching for Efficiency:}
+    % To avoid repeating the calculations for images that are processed often, the model saves each image’s depth map using an MD5 hash of the image file. When the same image is requested again, the result that is stored already is retrieved from the cache instead of recalculating it.
+
 
     \item \textbf{Depth Map Normalization \& Scaling:}
-    The depth map is normalized (all values adjusted to the 0--1 range relative to the depth minima/maxima in the map) and subsequently scaled to the desired metric depth range (e.g., up to 1499~mm) for table tennis analysis.
+   The depth map is first normalized, based on the minimum and maximum depths within the map. After normalization, it is scaled to a specific metric range (for example, up to 1499 mm) to suit the requirements of the table tennis analysis.
 
     \item \textbf{Sub-Pixel 3D Coordinate Retrieval:}
-    For any $(x, y)$ pixel coordinate on the image---such as a ball or player position---the system employs bilinear interpolation on the depth map to derive an accurate $Z$ (depth) coordinate. This enables sub-pixel precision.
+    For any $(x, y)$ pixel coordinate in the image like the position of a ball or player, the system uses bilinear interpolation on the depth map to estimate a precise Z (depth) value.
+
 
     \item \textbf{Output:}
-    The resulting $(x, y, z)$ coordinate for each requested point can now be directly mapped into real-world 3D space, thereby facilitating advanced tactics analysis, bounce point localization, and more.
+    The resulting $(x, y, z)$ coordinate of the requested point can now be directly translated into real-world 3D space.
 \end{itemize}
-\subsubsection{Sample Process Flow}
+% \subsubsection{Sample Process Flow}
 
-The method \texttt{getzpointfromxandy()} is invoked with an image (for instance, the annotated frame) and specified pixel coordinates.
+% The method \texttt{getzpointfromxandy()} is invoked with an image (for instance, the annotated frame) and specified pixel coordinates.
 
-The estimator either loads or retrieves the corresponding depth map for that image.
+% The estimator either loads or retrieves the corresponding depth map for that image.
 
-Bilinear interpolation is executed on the depth map utilizing the provided $x$ and $y$ coordinates, resulting in a highly accurate depth ($z$) value.
+% Bilinear interpolation is executed on the depth map utilizing the provided $x$ and $y$ coordinates, resulting in a highly accurate depth ($z$) value.
 
-The resulting $(x, y, z)$ triplet signifies authentic 3D positions, effectively addressing the intrinsic limitations of 2D video footage.
+% The resulting $(x, y, z)$ triplet signifies authentic 3D positions, effectively addressing the intrinsic limitations of 2D video footage.
 
 \begin{figure}
     \centering
@@ -488,9 +519,9 @@ The resulting $(x, y, z)$ triplet signifies authentic 3D positions, effectively 
     \label{fig:placeholder}
 \end{figure}
 
-\subsubsection{System Integration}
+% \subsubsection{System Integration}
 
-Within the agentic system, this module functions as a Knowledge Source, supplying 3D information upon demand. Its output is uploaded to the blackboard database, where other agents—such as those responsible for trajectory or bounce analysis—can integrate depth-enhanced data to accomplish spatial and reasoning tasks that were previously unattainable. This facilitates precise coaching feedback, improved trajectory correction, and more comprehensive tactical insights for table tennis analytics.
+% Within the agentic system, this module functions as a Knowledge Source, supplying 3D information upon demand. Its output is uploaded to the blackboard database, where other agents—such as those responsible for trajectory or bounce analysis—can integrate depth-enhanced data to accomplish spatial and reasoning tasks that were previously unattainable. This facilitates precise coaching feedback, improved trajectory correction, and more comprehensive tactical insights for table tennis analytics.
 
 \section{Experimental Results}
 Every module has to be evaluated differently due to the varying nature of our Knowledge Sources. Some are ML models while others are simple data and image processing. The performance metrics of the Knowledge Sources are given below
@@ -534,6 +565,42 @@ Here we use normal metrics such as Precision and Recall along with certain YOLO-
         \hline
     \end{tabular}
 \end{table}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{confusion_matrix.png}
+    \caption{Confusion Matrix for Ball Position Detection}
+    \label{fig:placeholder}
+\end{figure}
+
+From these metrics we can understand that this model has a very high precision value and can 
+accurately predict where the ball is. While it does have some false negative, the trajectory analysis 
+module can interpolate and compensate for any missing data 
+
+\subsection{Depth Estimation}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{depth1.png}
+    \caption{Depth Anything V2 pixels processed per second }
+    \label{fig:placeholder}
+\end{figure}
+This metric shows the models processing throughput, scalability to higher resolution, hardware utilization and optimization on frequent access, the real time processing capability of the model. This shows that if the model is loaded it can process various image in that instance at low time making it suitable for video frames to 3d frame applications.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{depth2.png}
+    \caption{Depth Anything V2 Detail score per image}
+    \label{fig:placeholder}
+\end{figure}
+The detail score shows the capability of the model on how well it estimates the depth map while retaining fine structural details and edges. It is computed by the change in the spatial gradient values, with higher score meaning better detail preservation of the object boundary
+
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{depth3.png}
+    \caption{Depth Anything overall quality per image}
+    \label{fig:placeholder}
+\end{figure}
+The overall quality score indicates the evaluation of depth map by combing depth range, detail preservation, and consistency. This output shows the practical usefulness in the sense of maintaining higher detail and accuracy on the 3d depth map .
 
 % \begin{figure}[htbp]
 % \centerline{\includegraphics{fig1.png}}
@@ -541,17 +608,18 @@ Here we use normal metrics such as Precision and Recall along with certain YOLO-
 % \label{fig}
 % \end{figure}
 \section{Future Work}
-The Multi-Agent System proposed here operates on static, preconfigured blackboard architecture, which almost often requires manual construction and thus lack generality.
+The Multi-Agent System proposed here operates on static, preconfigured blackboard architecture, which almost often requires manual construction and thus lacks generality.
 Recent studies on LLM Based Multi-Agent System (LbMAS) \cite{hanllm} develop autonomous MASs by taking advantage of using a Large Language Model as the control unit. 
 These LLMs can be used to dynamically configure new agents and their skills in runtime, make it much more general and requiring low to none manual setup.
 While, in theory, a static agent configuration is quicker and deterministic, the generality of a dynamic MAS outweighs those disadvantages.  
-
-In an age of rapid Cloud and Distributed Computing evolution, our proposal could also be made to take leverage of remote knowledge sources / agents and remote computing resources over a distributed network. 
+In an age of rapid Cloud and Distributed Computing evolution, our proposal could also be made to leverage remote knowledge sources/agents and remote computing resources over a distributed network. 
 Recent studies \cite{agentworkfloworchetration} \cite{distributedblackboard} show promising implementations of MASs with many agents running on different networks/systems.
 Our idea of a highly scalable MAS lies behind the ability to orchestrate and manage each type of knowledge source, individually, using a control unit of its own, taking inspiration from Kubernetes.
-\section{Acknowledgement}
-content
+
+% \section{Acknowledgement}
+% content
 \bibliographystyle{plain} % or 'unsrt', 'abbrv', etc.
+\nocite{*}
 \bibliography{references}
 
 \end{document}
